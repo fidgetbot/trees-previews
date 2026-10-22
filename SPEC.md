@@ -14,6 +14,8 @@ Hosted through GitHub Pages from main, repository root. No dependency on or muta
 
 ## Root-tip branching
 
+Revision 6 adds an isolated central-taproot anatomy study. A tapered central axis carries stable alternating lateral attachment slots; laterals and their secondary roots are thinner than their parents. The old painted distal roots fade out below the retained collar in this mode. Existing tip-attachment comparisons remain available. This is a geometry study using procedural wood, not final painted bark or a production gameplay integration.
+
 `painted-roots-short-stem/` compares the shipped connector, the earlier 65%-shorter study, and a tip-attached concept across Sapling, Young Tree, Mature Tree, and Ancient Cherry paintings. The tip-attached concept removes the narrow extension stem entirely and overlaps the extension's first fork slightly beneath the detected painted-root endpoint. The stage painting masks the seam, while the fork/fine-root artwork, scale, angles, counts, and framing remain unchanged. This is a prototype only; the production game is unchanged.
 
 Revision 3 replaces connector-length comparisons with a layered-growth study. The previous tip fan remains available only as a baseline. The two new variants add deterministic tapered strands from beneath the root flare, distribute fine laterals along each strand, and place successive growth layers into gaps across the existing root spread. The denser option adds one strand and one lateral per growth layer. Both preserve the production stage painting and fixed framing; neither changes production assets or mechanics.

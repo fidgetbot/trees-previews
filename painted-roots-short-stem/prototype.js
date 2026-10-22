@@ -3,7 +3,10 @@ const EXTENSION_URL = '../painted-roots/assets/root-woody-v2.png';
 const SPECIES = 'cherry';
 const FORK_Y = 720;
 const NETWORK_Y = 610;
+let taprootGrowth=0;
+let lateralGrowth=0;
 const VARIANTS = Object.freeze({
+  taproot: { type:'taproot' },
   baseline: { type:'compressed', overlap:.18 },
   matched: { type:'matched', widthRatio:1, overlap:.22 },
   slender: { type:'matched', widthRatio:.78, overlap:.18 },
@@ -113,8 +116,61 @@ function distalNetwork(image){
   return canvas;
 }
 
+function taperedWood(context,points,width){
+  const samples=[];
+  for(let i=0;i<=48;i++){
+    const t=i/48,u=1-t;
+    const x=u*u*u*points[0][0]+3*u*u*t*points[1][0]+3*u*t*t*points[2][0]+t*t*t*points[3][0];
+    const y=u*u*u*points[0][1]+3*u*u*t*points[1][1]+3*u*t*t*points[2][1]+t*t*t*points[3][1];
+    samples.push({x,y,w:width*Math.pow(1-t,1.15)});
+  }
+  context.beginPath();
+  for(const side of [1,-1]){
+    const order=side===1?samples:[...samples].reverse();
+    order.forEach((p,i)=>{
+      const index=samples.indexOf(p),a=samples[Math.max(0,index-1)],b=samples[Math.min(48,index+1)];
+      const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy)||1;
+      const x=p.x-dy/length*p.w*.5*side,y=p.y+dx/length*p.w*.5*side;
+      if(side===1&&i===0)context.moveTo(x,y);else context.lineTo(x,y);
+    });
+  }
+  context.closePath();
+  const shade=context.createLinearGradient(-width,0,width,0);
+  shade.addColorStop(0,'#543022');shade.addColorStop(.45,'#b77852');shade.addColorStop(1,'#68412d');
+  context.fillStyle=shade;context.fill();
+}
+
+function drawTaproot(context,stageImage,geometry,amount){
+  const depth=geometry.height*(1-geometry.groundRatio)*1.75;
+  const width=geometry.width*.045;
+  // Stable attachment slots: adding a lateral never moves an existing root.
+  const center=t=>[Math.sin(t*Math.PI)*width*.22,depth*t];
+  for(let i=0;i<amount;i++){
+    const t=.22+i*.095,side=i%2?1:-1,origin=center(t);
+    const reach=geometry.width*(.25-t*.13),drop=depth*(.12+i*.008);
+    const branchWidth=width*Math.pow(1-t,1.15)*.48;
+    const end=[origin[0]+side*reach,origin[1]+drop];
+    taperedWood(context,[origin,[origin[0]+side*reach*.35,origin[1]+drop*.1],[end[0]*.85,end[1]-drop*.3],end],branchWidth);
+    for(let j=0;j<2;j++){
+      const q=.48+j*.23;
+      const start=[origin[0]+side*reach*q,origin[1]+drop*q*q];
+      taperedWood(context,[start,[start[0]+side*reach*.05,start[1]+drop*.3],[start[0]+side*reach*.12,start[1]+drop*.7],[start[0]+side*reach*.16,start[1]+drop*.9]],branchWidth*(1-q)*.45);
+    }
+  }
+  const grownDepth=depth*(1+taprootGrowth*.09);
+  taperedWood(context,[[0,-width],[width*.25,grownDepth*.22],[width*.2,grownDepth*.65],[0,grownDepth]],width);
+  // Fade only the old distal roots; retain the painted collar to seat the taproot.
+  const layer=document.createElement('canvas');layer.width=stageImage.naturalWidth;layer.height=stageImage.naturalHeight;
+  const paint=layer.getContext('2d');paint.drawImage(stageImage,0,0);
+  paint.globalCompositeOperation='destination-in';
+  const mask=paint.createLinearGradient(0,layer.height*geometry.groundRatio,0,layer.height*(geometry.groundRatio+.10));
+  mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');paint.fillStyle=mask;paint.fillRect(0,0,layer.width,layer.height);
+  context.drawImage(layer,-geometry.width*.5,-geometry.height*geometry.groundRatio,geometry.width,geometry.height);
+}
+
 function drawRootGrowth(context,stageImage,extensionImage,metrics,geometry,amount,variantKey){
   const option=VARIANTS[variantKey];
+  if(option.type==='taproot'){drawTaproot(context,stageImage,geometry,Math.min(8,amount+lateralGrowth));return;}
   const variant=option.type==='compressed'
     ? shortenedExtension(extensionImage,metrics,0)
     : distalNetwork(extensionImage);
@@ -184,11 +240,17 @@ function renderStage(stage,variantKey,stageImage,extensionImage,metrics){
   context.restore();
 }
 
-let currentVariant='matched';
+let currentVariant='taproot';
 const assets={};
 for(const stage of STAGES)makeCard(stage);
+document.querySelector('#grow-taproot').addEventListener('click',()=>{taprootGrowth=Math.min(3,taprootGrowth+1);currentVariant='taproot';render();});
+document.querySelector('#add-lateral').addEventListener('click',()=>{lateralGrowth=Math.min(5,lateralGrowth+1);currentVariant='taproot';render();});
+document.querySelector('#reset-growth').addEventListener('click',()=>{taprootGrowth=0;lateralGrowth=0;render();});
 
 async function render(){
+  document.querySelector('#grow-taproot').disabled=taprootGrowth===3;
+  document.querySelector('#add-lateral').disabled=lateralGrowth===5;
+  document.querySelectorAll('button[data-variant]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.variant===currentVariant)));
   for(const stage of STAGES)renderStage(stage,currentVariant,assets[stage.key],assets.extension,assets.metrics);
 }
 

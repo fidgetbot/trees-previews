@@ -32,18 +32,24 @@
   <main>
     <header>
       <div class="eyebrow">Trees · root attachment study</div>
-      <h1>Match the painted root tips</h1>
-      <p>The added network now begins at the same width as the painted root it joins, then divides only into thinner descendants.</p>
+      <h1>A trunk beneath the soil</h1>
+      <p>A central taproot descends from the trunk. Smaller lateral roots grow from stable attachment points along its length.</p>
       <div class="status" id="status">Loading the production paintings…</div>
     </header>
     <nav class="controls" aria-label="Root growth concept">
       <button data-variant="baseline" aria-pressed="false">V2 compressed join</button>
-      <button data-variant="matched" aria-pressed="true">Match tip width</button>
+      <button data-variant="matched" aria-pressed="false">Previous tip attachments</button>
+      <button data-variant="taproot" aria-pressed="true">Central taproot</button>
       <button data-variant="slender" aria-pressed="false">78% slender join</button>
     </nav>
     <section class="grid" id="grid"></section>
-    <p class="note"><strong>What changed:</strong> the v2 version scaled from the extension’s needle-thin connector, so its first fork widened abruptly. The new variants discard that reverse-tapered connector and scale the pre-fork stem itself to either 100% or 78% of the painted endpoint width. Ancient’s nearly horizontal outer root uses the stage’s normal terminal-root thickness rather than its misleading horizontal pixel span. The existing painting remains on top to conceal the seam.</p>
+    <nav class="controls" aria-label="Try root growth">
+      <button id="grow-taproot">Grow taproot</button>
+      <button id="add-lateral">Add lateral root</button>
+      <button id="reset-growth">Reset growth</button>
+    </nav>
+    <p class="note"><strong>Geometry study:</strong> a central taproot supports smaller lateral roots. Grow taproot extends the central axis downward; Add lateral root adds another attachment. Try up to three taproot extensions, then Reset growth. Simplified wood is intentional here: this compares anatomy, not final bark artwork. Production remains unchanged.</p>
   </main>
-  <script type="module" src="./prototype.js?v=5"></script>
+  <script type="module" src="./prototype.js?v=6"></script>
 </body>
 </html>
