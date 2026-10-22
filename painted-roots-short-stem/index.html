@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Layered root growth · Trees prototype</title>
+  <title>Root-width continuity · Trees prototype</title>
   <style>
     :root { color-scheme: dark; font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; background:#17100c; color:#f8edda; }
     * { box-sizing:border-box; }
@@ -32,18 +32,18 @@
   <main>
     <header>
       <div class="eyebrow">Trees · root attachment study</div>
-      <h1>Layered, tapering roots</h1>
-      <p>New growth now reinforces the existing root spread with overlapping strands that begin beneath the root flare and become progressively thinner outward.</p>
+      <h1>Match the painted root tips</h1>
+      <p>The added network now begins at the same width as the painted root it joins, then divides only into thinner descendants.</p>
       <div class="status" id="status">Loading the production paintings…</div>
     </header>
     <nav class="controls" aria-label="Root growth concept">
-      <button data-variant="fan" aria-pressed="false">Tip fan (previous)</button>
-      <button data-variant="layered" aria-pressed="true">Layered roots</button>
-      <button data-variant="dense" aria-pressed="false">Denser layers</button>
+      <button data-variant="baseline" aria-pressed="false">V2 compressed join</button>
+      <button data-variant="matched" aria-pressed="true">Match tip width</button>
+      <button data-variant="slender" aria-pressed="false">78% slender join</button>
     </nav>
     <section class="grid" id="grid"></section>
-    <p class="note"><strong>What changed:</strong> each growth investment adds several slender, tapered paths beneath the existing painting. Secondary rootlets emerge along those paths—not as fans at their tips—and successive layers fill gaps in the established root stock. “Denser layers” tests one additional strand and lateral per investment.</p>
+    <p class="note"><strong>What changed:</strong> the v2 version scaled from the extension’s needle-thin connector, so its first fork widened abruptly. The new variants discard that reverse-tapered connector and scale the pre-fork stem itself to either 100% or 78% of the painted endpoint width. The existing painting remains on top to conceal the seam.</p>
   </main>
-  <script type="module" src="./prototype.js?v=3"></script>
+  <script type="module" src="./prototype.js?v=4"></script>
 </body>
 </html>
