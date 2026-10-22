@@ -5,6 +5,8 @@ const FORK_Y = 720;
 const NETWORK_Y = 610;
 let taprootGrowth=0;
 let lateralGrowth=0;
+const lateralRoots=[];
+let growthMessage='Two attachment points available. Try Grow roots three times.';
 const VARIANTS = Object.freeze({
   taproot: { type:'taproot' },
   baseline: { type:'compressed', overlap:.18 },
@@ -141,31 +143,27 @@ function taperedWood(context,points,width){
 }
 
 function drawTaproot(context,stageImage,geometry,amount){
-  const depth=geometry.height*(1-geometry.groundRatio)*1.75;
+  const depth=geometry.height*(1-geometry.groundRatio)*1.4;
   const width=geometry.width*.045;
   // Stable attachment slots: adding a lateral never moves an existing root.
-  const center=t=>[Math.sin(t*Math.PI)*width*.22,depth*t];
-  for(let i=0;i<amount;i++){
-    const t=.22+i*.095,side=i%2?1:-1,origin=center(t);
-    const reach=geometry.width*(.25-t*.13),drop=depth*(.12+i*.008);
-    const branchWidth=width*Math.pow(1-t,1.15)*.48;
+  const center=t=>[0,depth*t];
+  for(let i=0;i<lateralRoots.length;i++){
+    const t=.69+i*.105,side=i%2?1:-1,origin=center(t);
+    const reach=geometry.width*(.20-i*.012),drop=depth*.16;
+    const branchWidth=width*.22/(1+i*.13);
     const end=[origin[0]+side*reach,origin[1]+drop];
-    taperedWood(context,[origin,[origin[0]+side*reach*.35,origin[1]+drop*.1],[end[0]*.85,end[1]-drop*.3],end],branchWidth);
-    for(let j=0;j<2;j++){
-      const q=.48+j*.23;
-      const start=[origin[0]+side*reach*q,origin[1]+drop*q*q];
+    const curve=[origin,[origin[0]+side*reach*.35,origin[1]+drop*.1],[end[0]*.85,end[1]-drop*.3],end];
+    taperedWood(context,curve,branchWidth);
+    for(let j=0;j<2+lateralRoots[i];j++){
+      const q=.2+j*.045,u=1-q;
+      const start=[0,1].map(k=>u*u*u*curve[0][k]+3*u*u*q*curve[1][k]+3*u*q*q*curve[2][k]+q*q*q*curve[3][k]);
       taperedWood(context,[start,[start[0]+side*reach*.05,start[1]+drop*.3],[start[0]+side*reach*.12,start[1]+drop*.7],[start[0]+side*reach*.16,start[1]+drop*.9]],branchWidth*(1-q)*.45);
     }
   }
-  const grownDepth=depth*(1+taprootGrowth*.09);
-  taperedWood(context,[[0,-width],[width*.25,grownDepth*.22],[width*.2,grownDepth*.65],[0,grownDepth]],width);
-  // Fade only the old distal roots; retain the painted collar to seat the taproot.
-  const layer=document.createElement('canvas');layer.width=stageImage.naturalWidth;layer.height=stageImage.naturalHeight;
-  const paint=layer.getContext('2d');paint.drawImage(stageImage,0,0);
-  paint.globalCompositeOperation='destination-in';
-  const mask=paint.createLinearGradient(0,layer.height*geometry.groundRatio,0,layer.height*(geometry.groundRatio+.10));
-  mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');paint.fillStyle=mask;paint.fillRect(0,0,layer.width,layer.height);
-  context.drawImage(layer,-geometry.width*.5,-geometry.height*geometry.groundRatio,geometry.width,geometry.height);
+  const grownDepth=depth*(1+taprootGrowth*.22);
+  taperedWood(context,[[0,-width],[0,grownDepth*.22],[0,grownDepth*.65],[0,grownDepth]],width);
+  // Keep the complete original painting above the new central root.
+  context.drawImage(stageImage,-geometry.width*.5,-geometry.height*geometry.groundRatio,geometry.width,geometry.height);
 }
 
 function drawRootGrowth(context,stageImage,extensionImage,metrics,geometry,amount,variantKey){
@@ -233,7 +231,7 @@ function renderStage(stage,variantKey,stageImage,extensionImage,metrics){
   const width=rect.width,height=rect.height,groundY=height*.48;
   drawGround(context,width,height,groundY);
   context.save();
-  const sceneScale=Math.min(width/260,height/205)*stage.zoom;
+  const sceneScale=Math.min(width/260,height/205)*stage.zoom*(variantKey==='taproot'?.72:1);
   context.translate(width*.5,groundY);
   context.scale(sceneScale,sceneScale);
   drawRootGrowth(context,stageImage,extensionImage,metrics,stage,stage.additions,variantKey);
@@ -243,13 +241,18 @@ function renderStage(stage,variantKey,stageImage,extensionImage,metrics){
 let currentVariant='taproot';
 const assets={};
 for(const stage of STAGES)makeCard(stage);
-document.querySelector('#grow-taproot').addEventListener('click',()=>{taprootGrowth=Math.min(3,taprootGrowth+1);currentVariant='taproot';render();});
-document.querySelector('#add-lateral').addEventListener('click',()=>{lateralGrowth=Math.min(5,lateralGrowth+1);currentVariant='taproot';render();});
-document.querySelector('#reset-growth').addEventListener('click',()=>{taprootGrowth=0;lateralGrowth=0;render();});
+document.querySelector('#grow-taproot').addEventListener('click',()=>{taprootGrowth=Math.min(3,taprootGrowth+1);growthMessage='Taproot extended; two new attachment points opened.';currentVariant='taproot';render();});
+document.querySelector('#add-lateral').addEventListener('click',()=>{
+  if(lateralRoots.length<2+taprootGrowth*2){lateralRoots.push(0);growthMessage='A new lateral root grows from the taproot.';}
+  else {const i=lateralRoots.indexOf(Math.min(...lateralRoots));lateralRoots[i]++;growthMessage='Taproot slots full: an existing lateral grows a finer branch.';}
+  lateralGrowth++;currentVariant='taproot';render();
+});
+document.querySelector('#reset-growth').addEventListener('click',()=>{taprootGrowth=0;lateralGrowth=0;lateralRoots.length=0;growthMessage='Two attachment points available. Try Grow roots three times.';render();});
 
 async function render(){
   document.querySelector('#grow-taproot').disabled=taprootGrowth===3;
-  document.querySelector('#add-lateral').disabled=lateralGrowth===5;
+  document.querySelector('#add-lateral').disabled=lateralGrowth>=24;
+  document.querySelector('#growth-status').textContent=`${lateralRoots.length}/${2+taprootGrowth*2} taproot slots occupied · ${lateralRoots.reduce((a,b)=>a+b,0)} additional lateral branches. ${growthMessage}`;
   document.querySelectorAll('button[data-variant]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.variant===currentVariant)));
   for(const stage of STAGES)renderStage(stage,currentVariant,assets[stage.key],assets.extension,assets.metrics);
 }

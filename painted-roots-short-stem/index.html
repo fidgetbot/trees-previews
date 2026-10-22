@@ -45,11 +45,12 @@
     <section class="grid" id="grid"></section>
     <nav class="controls" aria-label="Try root growth">
       <button id="grow-taproot">Grow taproot</button>
-      <button id="add-lateral">Add lateral root</button>
+      <button id="add-lateral">Grow roots</button>
       <button id="reset-growth">Reset growth</button>
     </nav>
-    <p class="note"><strong>Geometry study:</strong> a central taproot supports smaller lateral roots. Grow taproot extends the central axis downward; Add lateral root adds another attachment. Try up to three taproot extensions, then Reset growth. Simplified wood is intentional here: this compares anatomy, not final bark artwork. Production remains unchanged.</p>
+    <p class="note" id="growth-status" aria-live="polite"></p>
+    <p class="note">The painted base roots remain intact. Fill the taproot’s two starting slots, then grow roots again to branch an existing lateral. Grow taproot opens two more slots without moving established roots. Simplified new wood is a geometry study, not final bark artwork. Demo limits: three taproot extensions and 24 root investments. Production is unchanged.</p>
   </main>
-  <script type="module" src="./prototype.js?v=6"></script>
+  <script type="module" src="./prototype.js?v=7"></script>
 </body>
 </html>
