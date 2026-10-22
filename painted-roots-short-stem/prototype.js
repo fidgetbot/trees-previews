@@ -3,9 +3,9 @@ const EXTENSION_URL = '../painted-roots/assets/root-woody-v2.png';
 const SPECIES = 'cherry';
 const FORK_Y = 720;
 const VARIANTS = Object.freeze({
-  current: { factor:1, overlap:0 },
-  shorter: { factor:.35, overlap:0 },
-  tip: { factor:0, overlap:.18 },
+  fan: { type:'fan', factor:0, overlap:.18 },
+  layered: { type:'layered', strands:2, laterals:2 },
+  dense: { type:'layered', strands:3, laterals:3 },
 });
 const ATTACHMENTS = Object.freeze([
   [.38,-1,.62],[.49,1,.58],[.61,-1,.54],[.72,1,.50],
@@ -92,8 +92,91 @@ function shortenedExtension(image,metrics,factor){
   return canvas;
 }
 
+function cubicPoint(curve,t){
+  const inverse=1-t;
+  return {
+    x:inverse**3*curve[0].x+3*inverse**2*t*curve[1].x+3*inverse*t**2*curve[2].x+t**3*curve[3].x,
+    y:inverse**3*curve[0].y+3*inverse**2*t*curve[1].y+3*inverse*t**2*curve[2].y+t**3*curve[3].y,
+  };
+}
+
+function drawTaperedCurve(context,curve,startWidth,endWidth,opacity=1){
+  const steps=28;
+  let previous=cubicPoint(curve,0);
+  context.save();
+  context.lineCap='round';
+  context.lineJoin='round';
+  context.globalAlpha=opacity;
+  for(let index=1;index<=steps;index++){
+    const t=index/steps;
+    const point=cubicPoint(curve,t);
+    const width=startWidth+(endWidth-startWidth)*Math.pow(t,.82);
+    context.strokeStyle='#3a1d15';
+    context.lineWidth=width+Math.max(.16,startWidth*.28);
+    context.beginPath();context.moveTo(previous.x,previous.y);context.lineTo(point.x,point.y);context.stroke();
+    context.strokeStyle=t<.62?'#9d573d':'#b87551';
+    context.lineWidth=width;
+    context.beginPath();context.moveTo(previous.x,previous.y);context.lineTo(point.x,point.y);context.stroke();
+    context.strokeStyle='rgba(238,177,120,.34)';
+    context.lineWidth=Math.max(.08,width*.22);
+    context.beginPath();context.moveTo(previous.x-width*.1,previous.y-width*.08);context.lineTo(point.x-width*.1,point.y-width*.08);context.stroke();
+    previous=point;
+  }
+  context.restore();
+}
+
+function layeredCurve(geometry,layer,strand,strandCount){
+  const side=layer%2?-1:1;
+  const depth=geometry.height*(1-geometry.groundRatio);
+  const pathIndex=layer*strandCount+strand;
+  const lane=pathIndex%5;
+  const start={x:side*geometry.width*(.035+layer*.006),y:depth*(.035+strand*.018)};
+  const end={
+    x:side*geometry.width*(.18+lane*.055+layer*.004),
+    y:depth*(.56+((pathIndex*3)%5)*.085),
+  };
+  return [
+    start,
+    {x:side*geometry.width*(.07+lane*.012),y:depth*(.15+strand*.025)},
+    {x:end.x*(.61+strand*.04),y:end.y*(.58+((pathIndex+2)%3)*.06)},
+    end,
+  ];
+}
+
+function drawLayeredRoots(context,geometry,amount,option){
+  const layers=Math.max(1,amount);
+  for(let layer=0;layer<layers;layer++){
+    for(let strand=0;strand<option.strands;strand++){
+      const curve=layeredCurve(geometry,layer,strand,option.strands);
+      const baseWidth=geometry.width*(.0082-layer*.00035)*(1-strand*.12);
+      drawTaperedCurve(context,curve,baseWidth,Math.max(.09,baseWidth*.13),.90);
+      for(let branch=0;branch<option.laterals;branch++){
+        const t=.43+branch*.19+strand*.035;
+        const origin=cubicPoint(curve,t);
+        const direction=(layer+branch+strand)%2?-1:1;
+        const side=layer%2?-1:1;
+        const reach=geometry.width*(.032+branch*.009);
+        const drop=geometry.height*(1-geometry.groundRatio)*(.075+branch*.026);
+        const lateral=[
+          origin,
+          {x:origin.x+side*reach*.28,y:origin.y+drop*.12},
+          {x:origin.x+side*reach*.62,y:origin.y+drop*(.58+direction*.10)},
+          {x:origin.x+side*reach,y:origin.y+drop},
+        ];
+        const branchWidth=baseWidth*(.48-branch*.08);
+        drawTaperedCurve(context,lateral,branchWidth,Math.max(.07,branchWidth*.16),.82);
+      }
+    }
+  }
+}
+
 function drawRootGrowth(context,stageImage,extensionImage,metrics,geometry,amount,variantKey){
   const option=VARIANTS[variantKey];
+  if(option.type==='layered'){
+    drawLayeredRoots(context,geometry,amount,option);
+    context.drawImage(stageImage,-geometry.width*.5,-geometry.height*geometry.groundRatio,geometry.width,geometry.height);
+    return;
+  }
   const variant=shortenedExtension(extensionImage,metrics,option.factor);
   for(const part of rootLayout(stageImage,geometry,amount)){
     const desired=geometry.height*part.size;
@@ -129,7 +212,7 @@ function makeCard(stage){
   const figure=document.createElement('figure');
   const canvas=document.createElement('canvas');
   const caption=document.createElement('figcaption');
-  caption.innerHTML=`<strong>${stage.label}</strong><span>${stage.additions} added roots</span>`;
+  caption.innerHTML=`<strong>${stage.label}</strong><span>${stage.additions} growth layers</span>`;
   figure.append(canvas,caption);
   document.querySelector('#grid').append(figure);
   stage.canvas=canvas;
@@ -152,7 +235,7 @@ function renderStage(stage,variantKey,stageImage,extensionImage,metrics){
   context.restore();
 }
 
-let currentVariant='tip';
+let currentVariant='layered';
 const assets={};
 for(const stage of STAGES)makeCard(stage);
 
@@ -173,7 +256,7 @@ try{
   ]);
   assets.extension=loaded[0]; assets.metrics=extensionMetrics(assets.extension);
   STAGES.forEach((stage,index)=>assets[stage.key]=loaded[index+1]);
-  document.querySelector('#status').textContent='Production Cherry paintings · identical fork scale in every option';
+  document.querySelector('#status').textContent='Production Cherry paintings · fixed stage scale in every option';
   await render();
   let timer;
   window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(render,80)});

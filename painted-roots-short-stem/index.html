@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Root-tip branching · Trees prototype</title>
+  <title>Layered root growth · Trees prototype</title>
   <style>
     :root { color-scheme: dark; font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; background:#17100c; color:#f8edda; }
     * { box-sizing:border-box; }
@@ -32,18 +32,18 @@
   <main>
     <header>
       <div class="eyebrow">Trees · root attachment study</div>
-      <h1>Branch from the painted tips</h1>
-      <p>The new concept removes the added connector and begins each new fork directly at a visible endpoint of the established root stock.</p>
+      <h1>Layered, tapering roots</h1>
+      <p>New growth now reinforces the existing root spread with overlapping strands that begin beneath the root flare and become progressively thinner outward.</p>
       <div class="status" id="status">Loading the production paintings…</div>
     </header>
-    <nav class="controls" aria-label="Root attachment concept">
-      <button data-variant="current" aria-pressed="false">Original connector</button>
-      <button data-variant="shorter" aria-pressed="false">65% shorter</button>
-      <button data-variant="tip" aria-pressed="true">Branch at tip</button>
+    <nav class="controls" aria-label="Root growth concept">
+      <button data-variant="fan" aria-pressed="false">Tip fan (previous)</button>
+      <button data-variant="layered" aria-pressed="true">Layered roots</button>
+      <button data-variant="dense" aria-pressed="false">Denser layers</button>
     </nav>
     <section class="grid" id="grid"></section>
-    <p class="note"><strong>What changed:</strong> “Branch at tip” removes the narrow added stem completely and overlaps the first branching node slightly beneath the painted endpoint. The existing painting hides the seam; fork size, fine roots, attachment angles, and stage framing remain unchanged.</p>
+    <p class="note"><strong>What changed:</strong> each growth investment adds several slender, tapered paths beneath the existing painting. Secondary rootlets emerge along those paths—not as fans at their tips—and successive layers fill gaps in the established root stock. “Denser layers” tests one additional strand and lateral per investment.</p>
   </main>
-  <script type="module" src="./prototype.js?v=2"></script>
+  <script type="module" src="./prototype.js?v=3"></script>
 </body>
 </html>
