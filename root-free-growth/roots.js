@@ -17,7 +17,7 @@ function prepare(image,p){
  const span=spans.sort((a,b)=>(b[1]-b[0])-(a[1]-a[0]))[0];
  const cx=(span[0]+span[1])/2;const samples=[];for(let i=span[0]+2;i<span[1]-1;i++)if(data[i*4+3]>220)samples.push([data[i*4],data[i*4+1],data[i*4+2]]);
  const color=[0,1,2].map(k=>Math.round(samples.reduce((n,c)=>n+c[k],0)/samples.length));
- return {...p,image,cutY:y,cx,collar:span[1]-span[0]+1,color};
+ return {...p,image:c,cutY:y,cx,collar:span[1]-span[0]+1,color};
 }
 const rgb=(c,f=1)=>`rgb(${c.map(v=>Math.max(0,Math.min(255,Math.round(v*f)))).join(',')})`;
 function wood(ctx,curve,width,color,seed,material){
