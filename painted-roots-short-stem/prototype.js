@@ -16,7 +16,7 @@ const STAGES = Object.freeze([
   { key:'sapling', label:'Sapling', width:66, height:82, groundRatio:.59, zoom:1.75, additions:3 },
   { key:'young-tree', label:'Young Tree', width:94, height:105, groundRatio:.61, zoom:1.18, additions:4 },
   { key:'mature-tree', label:'Mature Tree', width:142, height:122, groundRatio:.63, zoom:.86, additions:5 },
-  { key:'ancient', label:'Ancient', width:174, height:136, groundRatio:.65, zoom:.74, additions:6 },
+  { key:'ancient', label:'Ancient', width:174, height:136, groundRatio:.65, zoom:.74, additions:6, maxJoinWidthRatio:.0175 },
 ]);
 
 const loadImage = source => new Promise((resolve, reject) => {
@@ -127,9 +127,16 @@ function drawRootGrowth(context,stageImage,extensionImage,metrics,geometry,amoun
     // The matched variants use the actual pre-fork stem width as their scale
     // reference. The join can therefore never be wider than the painted tip.
     const joinRatio=option.type==='compressed'?.8:option.widthRatio;
-    const scale=Math.min(desired/Math.max(1,sourceHeight),part.parentWidth*joinRatio/sourceWidth);
+    // Ancient's far-left painted root is nearly horizontal. A horizontal
+    // alpha scan crosses 26 pixels along that root instead of measuring its
+    // thickness, so constrain matched networks to the stage's ordinary
+    // terminal-root width. Earlier stages and the v2 baseline are unchanged.
+    const stageJoinWidth=option.type==='compressed'||!geometry.maxJoinWidthRatio
+      ? part.parentWidth
+      : Math.min(part.parentWidth,geometry.width*geometry.maxJoinWidthRatio);
+    const scale=Math.min(desired/Math.max(1,sourceHeight),stageJoinWidth*joinRatio/sourceWidth);
     if(!(scale>0))continue;
-    const overlap=part.parentWidth*option.overlap;
+    const overlap=stageJoinWidth*option.overlap;
     context.save();
     context.translate(part.x,part.y);
     context.rotate(part.side<0?.64:-.59);
