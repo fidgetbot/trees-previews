@@ -11,3 +11,7 @@ Revision 2 replaces the universal golden root with two generated sprite families
 This is a compositor study, not a complete root-growth implementation. The fade is not final tip-growth animation. Between-stage continuity remains unvalidated. The three stage cards are independent examples, not sequential transitions. Mature and Ancient stage-specific families are not part of this three-stage study.
 
 Hosted through GitHub Pages from main, repository root. No dependency on or mutation of the live game's version or files.
+
+## Root-tip branching
+
+`painted-roots-short-stem/` compares the shipped connector, the earlier 65%-shorter study, and a tip-attached concept across Sapling, Young Tree, Mature Tree, and Ancient Cherry paintings. The tip-attached concept removes the narrow extension stem entirely and overlaps the extension's first fork slightly beneath the detected painted-root endpoint. The stage painting masks the seam, while the fork/fine-root artwork, scale, angles, counts, and framing remain unchanged. This is a prototype only; the production game is unchanged.

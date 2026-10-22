@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Shorter woody root stems · Trees prototype</title>
+  <title>Root-tip branching · Trees prototype</title>
   <style>
     :root { color-scheme: dark; font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; background:#17100c; color:#f8edda; }
     * { box-sizing:border-box; }
@@ -32,19 +32,18 @@
   <main>
     <header>
       <div class="eyebrow">Trees · root attachment study</div>
-      <h1>Shorter woody stems</h1>
-      <p>The painted fork and fine-root network are unchanged. Only the narrow connector between the established root stock and the first fork is shortened.</p>
+      <h1>Branch from the painted tips</h1>
+      <p>The new concept removes the added connector and begins each new fork directly at a visible endpoint of the established root stock.</p>
       <div class="status" id="status">Loading the production paintings…</div>
     </header>
-    <nav class="controls" aria-label="Stem length">
-      <button data-factor="1" aria-pressed="false">Current</button>
-      <button data-factor="0.65" aria-pressed="false">35% shorter</button>
-      <button data-factor="0.5" aria-pressed="true">50% shorter</button>
-      <button data-factor="0.35" aria-pressed="false">65% shorter</button>
+    <nav class="controls" aria-label="Root attachment concept">
+      <button data-variant="current" aria-pressed="false">Original connector</button>
+      <button data-variant="shorter" aria-pressed="false">65% shorter</button>
+      <button data-variant="tip" aria-pressed="true">Branch at tip</button>
     </nav>
     <section class="grid" id="grid"></section>
-    <p class="note"><strong>What to compare:</strong> whether the new roots now read as secondary branches of the existing stock, while retaining enough connector to avoid a pasted-on joint. All four views use the game’s attachment-point detection, angles, and branch scale.</p>
+    <p class="note"><strong>What changed:</strong> “Branch at tip” removes the narrow added stem completely and overlaps the first branching node slightly beneath the painted endpoint. The existing painting hides the seam; fork size, fine roots, attachment angles, and stage framing remain unchanged.</p>
   </main>
-  <script type="module" src="./prototype.js?v=1"></script>
+  <script type="module" src="./prototype.js?v=2"></script>
 </body>
 </html>

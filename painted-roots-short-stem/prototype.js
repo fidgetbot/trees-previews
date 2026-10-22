@@ -2,6 +2,11 @@ const ASSET_ROOT = 'https://fidgetbot.github.io/trees/assets/trees';
 const EXTENSION_URL = '../painted-roots/assets/root-woody-v2.png';
 const SPECIES = 'cherry';
 const FORK_Y = 720;
+const VARIANTS = Object.freeze({
+  current: { factor:1, overlap:0 },
+  shorter: { factor:.35, overlap:0 },
+  tip: { factor:0, overlap:.18 },
+});
 const ATTACHMENTS = Object.freeze([
   [.38,-1,.62],[.49,1,.58],[.61,-1,.54],[.72,1,.50],
   [.80,-1,.45],[.56,1,.43],[.69,-1,.40],[.86,1,.37],
@@ -87,19 +92,24 @@ function shortenedExtension(image,metrics,factor){
   return canvas;
 }
 
-function drawRootGrowth(context,stageImage,extensionImage,metrics,geometry,amount,factor){
-  const variant=shortenedExtension(extensionImage,metrics,factor);
+function drawRootGrowth(context,stageImage,extensionImage,metrics,geometry,amount,variantKey){
+  const option=VARIANTS[variantKey];
+  const variant=shortenedExtension(extensionImage,metrics,option.factor);
   for(const part of rootLayout(stageImage,geometry,amount)){
     const desired=geometry.height*part.size;
     // The original image remains the scale reference: the network stays the
     // same size while only the narrow connector relinquishes space.
     const scale=Math.min(desired/Math.max(1,metrics.maxY-metrics.sy),part.parentWidth*.8/metrics.inletWidth);
     if(!(scale>0))continue;
+    // The tip-attached concept removes the entire narrow connector. A small
+    // overlap places its first branching node beneath the painted endpoint,
+    // so the established root masks the seam and the new fork begins there.
+    const overlap=part.parentWidth*option.overlap;
     context.save();
     context.translate(part.x,part.y);
     context.rotate(part.side<0?.64:-.59);
     context.scale(part.side<0?-1:1,1);
-    context.drawImage(variant,-metrics.sx*scale,-metrics.sy*scale,variant.width*scale,variant.height*scale);
+    context.drawImage(variant,-metrics.sx*scale,-metrics.sy*scale-overlap,variant.width*scale,variant.height*scale);
     context.restore();
   }
   context.drawImage(stageImage,-geometry.width*.5,-geometry.height*geometry.groundRatio,geometry.width,geometry.height);
@@ -125,7 +135,7 @@ function makeCard(stage){
   stage.canvas=canvas;
 }
 
-function renderStage(stage,factor,stageImage,extensionImage,metrics){
+function renderStage(stage,variantKey,stageImage,extensionImage,metrics){
   const canvas=stage.canvas;
   const rect=canvas.getBoundingClientRect();
   const ratio=Math.min(2,window.devicePixelRatio||1);
@@ -138,21 +148,21 @@ function renderStage(stage,factor,stageImage,extensionImage,metrics){
   const sceneScale=Math.min(width/260,height/205)*stage.zoom;
   context.translate(width*.5,groundY);
   context.scale(sceneScale,sceneScale);
-  drawRootGrowth(context,stageImage,extensionImage,metrics,stage,stage.additions,factor);
+  drawRootGrowth(context,stageImage,extensionImage,metrics,stage,stage.additions,variantKey);
   context.restore();
 }
 
-let currentFactor=.5;
+let currentVariant='tip';
 const assets={};
 for(const stage of STAGES)makeCard(stage);
 
 async function render(){
-  for(const stage of STAGES)renderStage(stage,currentFactor,assets[stage.key],assets.extension,assets.metrics);
+  for(const stage of STAGES)renderStage(stage,currentVariant,assets[stage.key],assets.extension,assets.metrics);
 }
 
-document.querySelectorAll('button[data-factor]').forEach(button=>button.addEventListener('click',()=>{
-  currentFactor=Number(button.dataset.factor);
-  document.querySelectorAll('button[data-factor]').forEach(candidate=>candidate.setAttribute('aria-pressed',String(candidate===button)));
+document.querySelectorAll('button[data-variant]').forEach(button=>button.addEventListener('click',()=>{
+  currentVariant=button.dataset.variant;
+  document.querySelectorAll('button[data-variant]').forEach(candidate=>candidate.setAttribute('aria-pressed',String(candidate===button)));
   render();
 }));
 
@@ -163,7 +173,7 @@ try{
   ]);
   assets.extension=loaded[0]; assets.metrics=extensionMetrics(assets.extension);
   STAGES.forEach((stage,index)=>assets[stage.key]=loaded[index+1]);
-  document.querySelector('#status').textContent='Production Cherry paintings · identical branch scale in every option';
+  document.querySelector('#status').textContent='Production Cherry paintings · identical fork scale in every option';
   await render();
   let timer;
   window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(render,80)});
