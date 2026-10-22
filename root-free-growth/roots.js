@@ -51,7 +51,7 @@ function roots(p,investments,depthGrowth){
  const primaries=nodes.slice();
  for(let n=0;n<investments;n++){
  const parent=primaries[1+n%(primaries.length-1)],round=Math.floor(n/(primaries.length-1));
- const t=.27+round*.145,origin=point(parent.curve,t),side=Math.sign(parent.curve[3][0]);
+ const t=[.43,.57,.49,.70,.64,.80][round],origin=point(parent.curve,t),side=Math.sign(parent.curve[3][0]);
  const reach=(35+12*Math.sin(n*2.3))*(1-round*.12),drop=30+12*Math.cos(n*1.7);
  const end=[origin[0]+side*reach,origin[1]+drop];
  const child={curve:[origin,[origin[0]+side*reach*.25,origin[1]+drop*.2],[end[0]-side*reach*.2,end[1]-drop*.25],end],width:parent.width*Math.pow(1-t,1.25)*.65,color:p.color};nodes.push(child);
