@@ -39,7 +39,10 @@ function wood(ctx,curve,width,color,seed,material,progress=1){
 }
 const clamp=v=>Math.max(0,Math.min(1,v));
 function roots(p,investments){
- const collar=p.collar*260/p.cutY,nodes=[],clock=investments+3;
+ const stageIndex=profiles.indexOf(p);
+ const clock=stageIndex*6+investments/4+3;
+ p=profiles[3]; // One lifetime scaffold, shared by every age painting.
+ const collar=p.collar*260/p.cutY,anchorCollar=Math.min(...profiles.map(q=>q.collar*260/q.cutY)),nodes=[];
  const random=n=>{const v=Math.sin(n*127.1+19.7)*43758.5453;return v-Math.floor(v);};
  function branch(curve,birth,duration,target,parent=null,at=0,order=0,seed=1){
   const progress=clamp((clock-birth)/duration);if(progress<=0)return;
@@ -69,7 +72,7 @@ function roots(p,investments){
  for(let i=0;i<count;i++){
   const side=i<2?-1:i>2?1:0,rank=i<2?i:i>2?4-i:0;
   const x=side*p.spread*(rank===0?.83:.48),y=side?(rank===0?48:p.depth*.65):p.depth*.98;
-  const origin=[(i-2)*collar*.16,-2];
+  const origin=[(i-2)*anchorCollar*.16,-2];
   const curve=[origin,[origin[0]+side*42,20],[x*.72+(side?0:-18),y*.65],[x+(side?0:9),y]];
   branch(curve,-2,18,collar*(side?.22:.26),null,0,0,i+1);
  }
@@ -79,10 +82,11 @@ function draw(canvas,p,investment,depthGrowth,close=false){
  const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
  const w=rect.width,h=rect.height,ground=close?h*.16:h*.48;
  ctx.fillStyle='#302219';ctx.fillRect(0,0,w,ground);const earth=ctx.createLinearGradient(0,ground,0,h);earth.addColorStop(0,'#261d14');earth.addColorStop(1,'#17120d');ctx.fillStyle=earth;ctx.fillRect(0,ground,w,h-ground);ctx.strokeStyle='#80654666';ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(w,ground);ctx.stroke();
- const size=Math.min((w-24)/(p.spread*2+65),(h-ground-18)/(p.depth+90),close?10:(ground-14)/260);
+ const size=Math.min((w-24)/(profiles[3].spread*2+65),(h-ground-18)/(profiles[3].depth+90),close?10:(ground-14)/260);
  ctx.save();ctx.translate(w/2,ground);ctx.scale(size,size);
- const {nodes,collar}=roots(p,investment,depthGrowth);
- for(let i=nodes.length-1;i>=0;i--)wood(ctx,nodes[i].curve,nodes[i].width,p.color,nodes[i].id,p,nodes[i].progress);
+ const {nodes}=roots(p,investment);
+ const collar=p.collar*260/p.cutY;
+ for(let i=nodes.length-1;i>=0;i--)wood(ctx,nodes[i].curve,nodes[i].width,profiles[3].color,nodes[i].id,profiles[3],nodes[i].progress);
  ctx.fillStyle=rgb(p.color,.90);ctx.beginPath();ctx.moveTo(-collar/2,-2);ctx.bezierCurveTo(-collar*.48,5,-collar*.35,10,-collar*.31,12);ctx.quadraticCurveTo(0,6,collar*.31,12);ctx.bezierCurveTo(collar*.35,10,collar*.48,5,collar/2,-2);ctx.closePath();ctx.fill();ctx.save();ctx.clip();ctx.drawImage(p.image,p.cx-p.collar/2,p.cutY-12,p.collar,12,-collar/2,-2,collar,15);ctx.restore();
  // Source-rectangle cropping preserves every original pixel above this collar.
  const imgScale=260/p.cutY;ctx.drawImage(p.image,0,0,p.image.width,p.cutY,-p.cx*imgScale,-260,p.image.width*imgScale,260);
@@ -92,10 +96,13 @@ let shown=0,frame=0,playing=false;
 function render(){if(!ready)return;const p=profiles[stage];document.querySelector('#scene').classList.toggle('focused',focus);draw(document.querySelector('#scene'),p,shown,0,focus);
  for(const c of document.querySelectorAll('[data-snapshot]'))draw(c,p,Number(c.dataset.snapshot),0,true);
  const graph=roots(p,shown);
- document.querySelector('#caption').textContent=`${p.name} · growth step ${level} / 24 · ${graph.nodes.length} connected root axes`;
- document.querySelector('#status').textContent='Tips extend · smaller roots branch · older wood thickens';
+ document.querySelector('#caption').textContent=`${p.name} · stage growth ${level} / 24 · lifetime ${Math.round(stage*24+shown)} / 96 · ${graph.nodes.length} connected root axes`;
+ document.querySelector('#status').textContent='One lifetime root network · no reset between stages';
  document.querySelectorAll('[data-stage]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.stage)===stage));document.querySelectorAll('[data-level]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.level)===level));
  document.querySelector('#grow').disabled=level>=24;
+ document.querySelector('#next').disabled=stage>=3||level<24;
+ document.querySelector('#handoff').hidden=stage===3;
+ if(stage<3){draw(document.querySelector('#before'),p,24,0,true);draw(document.querySelector('#after'),profiles[stage+1],0,0,true);document.querySelector('#before-label').textContent=p.name+' · established';document.querySelector('#after-label').textContent=profiles[stage+1].name+' · starting';}
  document.querySelector('#timeline').value=shown;
  document.querySelector('#play').textContent=playing?'Pause growth':'Play growth';
 }
@@ -104,7 +111,8 @@ function setLevel(n,animate=false){stop();level=n;const start=shown,time=perform
  if(!animate||matchMedia('(prefers-reduced-motion: reduce)').matches){shown=n;render();return;}
  function tick(now){const t=clamp((now-time)/850);shown=mix(start,n,t*t*(3-2*t));render();if(t<1)frame=requestAnimationFrame(tick);}frame=requestAnimationFrame(tick);
 }
-document.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>{stop();shown=level;stage=Number(b.dataset.stage);render();});document.querySelectorAll('[data-level]').forEach(b=>b.onclick=()=>setLevel(Number(b.dataset.level)));
+document.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>{stop();shown=level=0;stage=Number(b.dataset.stage);render();});document.querySelectorAll('[data-level]').forEach(b=>b.onclick=()=>setLevel(Number(b.dataset.level)));
+document.querySelector('#next').onclick=()=>{if(stage<3&&level===24){stop();stage++;shown=level=0;render();}};
 document.querySelector('#grow').onclick=()=>setLevel(Math.min(24,level+1),true);
 document.querySelector('#play').onclick=()=>{if(playing){stop();level=Math.round(shown);shown=level;render();return;}stop();if(shown>=24)shown=0;playing=true;const from=shown,start=performance.now();function tick(now){shown=Math.min(24,from+(now-start)/950);level=Math.floor(shown);if(shown>=24)playing=false;render();if(playing)frame=requestAnimationFrame(tick);}frame=requestAnimationFrame(tick);};
 document.querySelector('#timeline').oninput=e=>setLevel(Number(e.target.value));
