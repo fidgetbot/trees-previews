@@ -1,0 +1,2119 @@
+import { growthRevealDuration, growthRevealProgress, isRootGrowthReveal, syncGrowthAttachments } from './ui/painted-growth.js?rev=botanical-roots-v1';
+import {
+  SEASONS,
+  LIFE_STAGES,
+  STAGE_BY_NAME,
+  SEASONAL_ACTIONS,
+  PROGRESSIVE_ACTION_UNLOCKS,
+  RELATIONSHIP_STATES,
+  getRelationshipState,
+  getNeighborStage,
+} from './core/constants.js?rev=botanical-roots-v1';
+import {
+  SPECIES,
+  getCurrentSpeciesSpec,
+  getStageProgressIncrement,
+  getSpeciesAdjustedCost,
+  getAdjustedRelationshipDelta,
+  getPollinatorChance,
+  getDroughtResistance,
+} from './core/species.js?rev=resource-balance-v1';
+import {
+  computeCurrentLifeStage as computeCurrentLifeStageFromState,
+  turnsForYears,
+  currentStageRequirements as getCurrentStageRequirements,
+  getNextStage as getNextStageFromState,
+  resetStageProgressCounters as resetStageProgressCountersForState,
+} from './core/stages.js?rev=four-turn-seasons-v1';
+import { randomChoice, randomInt } from './core/random.js';
+import { createActions, getActionAvailability, getActionUnlockAnnouncement, getActionUnlockExplanation, getActionUnlockReason, hasStoredProtection, isActionAnnounceableInSeason, isActionUnlockedForState } from './core/actions.js?rev=botanical-roots-v1';
+import {
+  createMajorEvents,
+  rollMajorEvent as rollMajorEventFromList,
+  resolveFruitThreats as resolveFruitThreatsForState,
+  processSeasonalReproduction as processSeasonalReproductionForState,
+  resolveSeedFate as resolveSeedFateForCount,
+  rollMinorEvents as rollMinorEventsForState,
+  resolvePendingStartOfTurnEffects,
+  buildChemicalDefenseDecision,
+  buildHostileEncroachmentDecision,
+  describeDecisionPrompt,
+  resolveUnanswerableChemicalThreat,
+} from './core/events.js?rev=botanical-roots-v1';
+import {
+  applyRelationshipDelta as applyRelationshipDeltaForState,
+  updateAlliesCount as updateAlliesCountForState,
+  compareConflictPower as compareConflictPowerForState,
+  checkAllyBetrayal as checkAllyBetrayalForState,
+  buildAggressionDecision,
+  buildConnectionDecision,
+  buildAidDecision,
+  buildHelpRequestDecision,
+  markNeighborDead,
+  resolveDiplomacyDecision,
+} from './core/diplomacy.js?rev=structured-event-outcomes-v1';
+import { recordDamageForState, healthWarningBandForState, getHealthWarningContent, deathFlavorForCause } from './core/survival.js?rev=protected-grove-v1';
+import {
+  advanceHumanSystem,
+  advanceOffspringCrises,
+  buildConservationDecision,
+  buildHumanEncounterDecision,
+  describeOffspring,
+  growOffspringRecords,
+  nurtureOffspring,
+  updateProtectionProgress,
+} from './core/humans.js?rev=structured-event-outcomes-v1';
+import { applyGatheringActionAward, createEngine, shouldSkipGathering, updateResourceShortageNudges } from './core/engine.js?rev=botanical-roots-v1';
+import { advanceNeighborDeathCycle, createStartingNeighbors } from './core/neighbors.js?rev=forest-cycle-v1';
+import {
+  ensureIncidentState,
+  awaitIncidentResponse,
+  findActiveIncident,
+  getIncident,
+  incidentSceneArtKinds,
+  keepIncidentOngoing,
+  openEventIncident,
+  openIncident,
+  openMajorIncident,
+  queuedResponseIncidents,
+  resolveIncident,
+} from './core/incidents.js?rev=structured-event-outcomes-v1';
+import { buildIncidentDecision as buildSharedIncidentDecision, resolveIncidentDecision as resolveSharedIncidentDecision } from './core/incident-responses.js?rev=structured-event-outcomes-v1';
+import { canNeighborShadePlayer, neighborGrowthFromLight, neighborRhizosphereGrowthBonus, normalizePlayerShadeTarget, reconcileCanopyHeight } from './core/growth.js?rev=shared-rhizosphere-v1';
+import { renderActionPanels } from './ui/actions.js?rev=drag-carousel-v1';
+import { getContextualActions, getTargetActionContext, pickSceneTarget } from './ui/context-actions.js?rev=future-actions-label-v1';
+import { renderEventPhaseBody, renderFungalRumorBody, renderIncidentOutcomeBody } from './ui/events.js?rev=structured-event-outcomes-v1';
+import { buildPopupLogMessage, modalPlainText, renderGrowthChapter, showStandardModal } from './ui/modal.js?rev=painted-joins-v1';
+import { showChoiceModalUI } from './ui/choice-modal.js?rev=season-cards-v1';
+import { renderResourcePhaseBody } from './ui/resources.js?rev=botanical-roots-v1';
+import { renderSpringSeedFateBody, renderFullGameOverBody, renderGameOverBody, renderSuccessionBody, renderVictoryBody } from './ui/outcomes.js?rev=forest-cycle-v1';
+import { renderSpeciesSummary, initSpeciesSelectUI } from './ui/species.js?rev=feeding-pests-v1';
+import { loadCanvasAssets, renderForestScene, resetTreeRenderCaches } from './ui/canvas.js?rev=painted-joins-v1';
+import { centeredSceneOffset, containmentSceneOffset, containmentSceneZoom, comparisonCameraDuration, comparisonCameraFrame, interpolateSceneCamera, isTreeSceneTarget, isValidSceneCamera, sceneSafeViewport, targetSceneZoom } from './ui/scene-camera.js?rev=linear-tree-focus-v1';
+import { layoutMinimapTargets, minimapFruitMarkup } from './ui/grove-minimap.js?rev=fruit-minimap-v3';
+import { showFeedbackUI, setTurnEndBannerUI, initTooltipsUI, initCollapsibleGroupsUI, updateHudUI } from './ui/hud.js?rev=four-turn-seasons-v1';
+import { renderSeasonChangeBody, seasonChangePresentation } from './ui/seasons.js?rev=four-turn-seasons-v1';
+import { createInitialBrowserState, getBrowserElements, initPanelCollapseUI, initSpeciesSelectController, startBrowserGame, showGamePanelsUI } from './ui/browser-app.js?rev=incident-system-v1';
+
+function computeCurrentLifeStage() {
+  return computeCurrentLifeStageFromState(state);
+}
+
+function currentStageRequirements() {
+  return getCurrentStageRequirements(state);
+}
+
+function getNextStage() {
+  return getNextStageFromState(state);
+}
+
+function resetStageProgressCounters() {
+  resetStageProgressCountersForState(state);
+}
+
+function maybeShowGrowthNudge(onContinue = showResourcePhase) {
+  const reqs = currentStageRequirements();
+  if (reqs.length !== 3) return false;
+  const met = reqs.filter(r => r.met);
+  const missing = reqs.filter(r => !r.met);
+  if (met.length !== 2 || missing.length !== 1) return false;
+  if (state.growthNudgeCooldown > 0) return false;
+
+  const nudgeMap = {
+    time: [
+      'Your roots feel restless... something shifts slowly within.',
+      'The seasons work on you in silence. Change is coming.',
+    ],
+    roots: [
+      'Your deepest roots probe farther down, seeking something they cannot name.',
+      'The soil below still holds something you need.',
+    ],
+    leaves: [
+      'You feel an ache for wider green, for more light to hold.',
+      'Your small crown longs to unfurl further into the air.',
+    ],
+    major: [
+      'You sense storms approaching. Endurance will bring change.',
+      'Hard weather will teach your fibers what they must become.',
+    ],
+    allies: [
+      'Your roots touch others in the dark. Connection calls.',
+      'The forest would know you better if you reached outward.',
+    ],
+  };
+
+  const options = nudgeMap[missing[0].key] || ['Something in you strains toward its next form.'];
+  const message = randomChoice(options);
+  state.growthNudgeCooldown = 3 + randomInt(2);
+  showModal('A Quiet Urge', `<p><em>${message}</em></p>`, () => {
+    updateUI();
+    render();
+    onContinue();
+  });
+  return true;
+}
+
+function resumeTurnFlow() {
+  updateScore();
+  updateUI();
+  render();
+  renderActions();
+  if (state.actions <= 0) {
+    showEventPhase();
+  }
+}
+
+// Ally warning system - warns players they need to invest in diplomacy
+function maybeShowAllyWarning(onContinue = showResourcePhase) {
+  const stage = computeCurrentLifeStage().name;
+  
+  // Only warn in stages where allies will be needed
+  if (stage !== 'Sapling' && stage !== 'Young Tree' && stage !== 'Mature Tree') return false;
+  
+  // Don't warn if already have enough allies
+  if (state.allies >= 1) return false;
+  
+  // Don't warn too frequently
+  if (state.growthNudgeCooldown > 0) return false;
+  
+  // Calculate urgency based on stage
+  let urgency = 0;
+  if (stage === 'Sapling') urgency = 1; // Early warning
+  if (stage === 'Young Tree') urgency = 2; // Getting close
+  if (stage === 'Mature Tree') urgency = 3; // Critical
+  
+  const warnings = {
+    1: [
+      'Your roots sense other trees nearby. The fungal network awaits those who reach out.',
+      'The forest grows stronger together. Solitude has its limits.',
+    ],
+    2: [
+      'You feel the weight of growing alone. Ancient trees do not stand without kin.',
+      'Your roots brush against others in the dark, but no bonds have formed. Time grows short.',
+      'The path to Ancient requires connection. The soil remembers those who reach out.',
+    ],
+    3: [
+      'URGENT: You stand at the threshold of greatness, but alone. Without allies, Ancient remains beyond reach.',
+      'Your roots ache for connection. The fungal network is your only path forward now.',
+      'Time runs short. Seek root connection, or your lineage ends here.',
+    ],
+  };
+  
+  const options = warnings[urgency] || warnings[1];
+  const message = randomChoice(options);
+  
+  const titles = {
+    1: 'A Whisper in the Soil',
+    2: 'The Forest Reminds You',
+    3: 'CRITICAL: Connection Needed',
+  };
+  
+  state.growthNudgeCooldown = 4 + Math.floor(Math.random() * 2);
+  showModal(titles[urgency], `<p><em>${message}</em></p><p><strong>Current allies:</strong> ${state.allies}/1 needed for Ancient</p>`, () => {
+    updateUI();
+    render();
+    onContinue();
+  });
+  return true;
+}
+
+function tryAdvanceLifeStage(onContinue) {
+  const next = getNextStage();
+  if (!next) return false;
+  const reqs = currentStageRequirements();
+  if (!reqs.length || reqs.every(r => r.met)) {
+    state.lifeStage = next;
+    resetStageProgressCounters();
+    addLog(`You have grown. You are now a ${next.name}.`);
+    const unlockedActions = next.unlocks
+      .map(key => ACTIONS.find(action => action.key === key))
+      .filter(Boolean)
+      .filter(action => isActionUnlocked(action.key))
+      .filter(isActionAnnounceableNow);
+    state.announcedActionUnlocks ||= [];
+    unlockedActions.forEach(action => {
+      if (!state.announcedActionUnlocks.includes(action.key)) state.announcedActionUnlocks.push(action.key);
+    });
+    unlockedActions.forEach(action => addLog(`${getActionUnlockAnnouncement(action)} ${getActionUnlockExplanation(action)}`));
+    const unlockHtml = unlockedActions.map(action => `<p class="action-unlock"><strong>${getActionUnlockAnnouncement(action)}</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
+    const chapterBody = renderGrowthChapter(next, state.selectedSpecies, LIFE_STAGES, unlockHtml, { rootedSeed: next.name === 'Sprout' && state.leafClusters === 0, leafClusters: state.leafClusters });
+    // Refresh the scene; the shared dialog gate waits for its growth reveal.
+    updateUI();
+    render();
+    showModal(next.name, chapterBody, () => {
+      updateScore();
+      updateUI();
+      render();
+      if (onContinue) onContinue();
+      else resumeTurnFlow();
+    }, { kind: 'growth', eyebrow: `A new chapter · ${next.rank + 1} of ${LIFE_STAGES.length}` });
+    return true;
+  }
+  return false;
+}
+
+function maybeAnnounceProgressiveActionUnlocks(onContinue) {
+  state.announcedActionUnlocks ||= [];
+  const newlyUnlocked = ACTIONS.filter(action => isActionUnlocked(action.key) && isActionAnnounceableNow(action) && !state.announcedActionUnlocks.includes(action.key));
+  if (!newlyUnlocked.length) return false;
+  newlyUnlocked.forEach(action => {
+    state.announcedActionUnlocks.push(action.key);
+    addLog(`${getActionUnlockAnnouncement(action)} ${getActionUnlockExplanation(action)}`);
+  });
+  const body = newlyUnlocked.map(action => `<p class="action-unlock"><strong>${getActionUnlockAnnouncement(action)}</strong> ${getActionUnlockExplanation(action)}</p>`).join('');
+  showModal('New Growth Possibilities', body, () => {
+    onContinue?.();
+    // Unlocking ally actions rerenders and resizes the phone dock. Always
+    // finish that modal chain from a canonical camera for the still-active
+    // subject; otherwise a stale/interrupted view can leave the entire grove
+    // beyond the viewport while the dock correctly falls back to the player.
+    if (state.started) settleActiveSceneCamera();
+  });
+  return true;
+}
+
+function isActionAnnounceableNow(action) {
+  return isActionAnnounceableInSeason(action.key, currentSeason().name, SEASONAL_ACTIONS);
+}
+
+
+function getCurrentSpeciesSpecForState() {
+  return getCurrentSpeciesSpec(state);
+}
+
+function getStageProgressIncrementForState() {
+  return getStageProgressIncrement(state);
+}
+
+function getSpeciesAdjustedCostForState(actionKey, baseCost) {
+  return getSpeciesAdjustedCost(state, actionKey, baseCost, computeCurrentLifeStage());
+}
+
+function applyRelationshipDelta(neighbor, delta) {
+  return applyRelationshipDeltaForState(state, neighbor, delta, getAdjustedRelationshipDelta);
+}
+
+function getPollinatorChanceForState(baseChance) {
+  return getPollinatorChance(state, baseChance);
+}
+
+function getDroughtResistanceForState() {
+  return getDroughtResistance(state);
+}
+
+// Cost scaling: base costs multiply by stage rank (Sapling=×2, Young Tree=×3, etc.)
+function getScaledCost(baseCost, actionKey = null) {
+  return getSpeciesAdjustedCostForState(actionKey, baseCost);
+}
+
+const ACTIONS = createActions({
+  resinReserveAction,
+  woodSurgeAction,
+  attemptConnection,
+  offerAidToAlly,
+  requestHelpFromAllies,
+  shadeRivalAction,
+  rootDominionAction,
+  nurtureOffspringAction,
+  getRelationshipState,
+  getNeighborStage,
+  updateAlliesCount: s => updateAlliesCountForState(s, getRelationshipState),
+});
+
+const state = createInitialBrowserState({ initialLifeStage: LIFE_STAGES[0] });
+const els = getBrowserElements(document);
+const ctx = els.canvas.getContext('2d');
+let sceneHitTargets = [];
+let selectedSceneTarget = null;
+const contextualActionOrderByTarget = new Map();
+const contextualActionScrollByTarget = new Map();
+let sceneCamera = { x: 0, y: 0, zoom: 1 }, comparisonCameraView=null, cameraAnimationFrame = null, cameraRevision=0, cameraViewportSignature='';
+let cameraLayoutFrame=null;
+let lastRenderStage = null;
+let lastGrowthSnapshot = null, growthTransition = null, growthFrame = null, growthCameraRefitFrame = null;
+function currentGrowthReveal() {
+  const snapshot={species:state.selectedSpecies,roots:state.rootZones||0,leaves:state.leafClusters||0,branches:state.branches||0,taproots:state.taprootDepth||0};
+  syncGrowthAttachments(state);
+  const previous=lastGrowthSnapshot;
+  if(previous&&previous.species===snapshot.species&&['roots','leaves','branches','taproots'].some(key=>snapshot[key]>previous[key])) {
+    growthTransition={from:previous,start:performance.now(),duration:growthRevealDuration(snapshot,previous),root:isRootGrowthReveal(snapshot,previous)};
+    scheduleGrowthCameraRefit();
+  }
+  if(previous?.species!==snapshot.species)growthTransition=null;
+  lastGrowthSnapshot=snapshot;
+  if(!growthTransition||matchMedia('(prefers-reduced-motion: reduce)').matches){growthTransition=null;return null;}
+  const elapsed=(performance.now()-growthTransition.start)/growthTransition.duration;
+  if(elapsed>=1){growthTransition=null;return null;}
+  if(growthFrame===null)growthFrame=requestAnimationFrame(()=>{growthFrame=null;render();});
+  return {from:growthTransition.from,progress:growthRevealProgress(elapsed,growthTransition.root)};
+}
+
+function scheduleGrowthCameraRefit(){
+  if(growthCameraRefitFrame!==null)return;
+  growthCameraRefitFrame=requestAnimationFrame(()=>{
+    growthCameraRefitFrame=null;
+    if(!state.started||activeSceneTarget()?.id!=='player')return;
+    // Preserve baseline scale; make room only for genuine viewport overflow.
+    refitSceneCamera({animate:true});
+  });
+}
+
+function playerSceneTarget() {
+  return {
+    ...sceneHitTargets.find(target => target.id === 'player'),
+    id: 'player', type: 'player-tree', title: state.selectedSpecies || 'Your tree',
+    stageName: computeCurrentLifeStage().name,
+    subtitle: `${computeCurrentLifeStage().name} · You`,
+  };
+}
+
+function activeSceneTarget() {
+  if (!selectedSceneTarget || selectedSceneTarget.id === 'player') return playerSceneTarget();
+  return sceneHitTargets.find(target => target.id === selectedSceneTarget.id) || playerSceneTarget();
+}
+
+function contextualActionOrderKey(target) {
+  if (!target || target.type === 'player-tree') return 'player-tree';
+  if (target.id) return target.id;
+  if (target.type === 'neighbor-tree') return `neighbor-tree:${target.targetIndex}`;
+  if (target.type === 'offspring-tree') return `offspring-tree:${target.childId}`;
+  return `${target.type || 'scene-target'}:${target.kind || target.title || 'unknown'}`;
+}
+
+function selectSceneTarget(target) {
+  const previousTarget=activeSceneTarget();
+  const fromView=currentAbsoluteCameraView();
+  const nextTarget=target||playerSceneTarget();
+  if(isTreeSceneTarget(nextTarget))resetTreeRenderCaches();
+  if(previousTarget?.id===nextTarget?.id){
+    if(comparisonCameraView)return;
+    selectedSceneTarget=nextTarget;renderActions();
+    if(isTreeSceneTarget(nextTarget))refitSceneCamera();
+    else render();
+    return;
+  }
+  cancelSceneCameraAnimation();
+  selectedSceneTarget = nextTarget;
+  renderActions();
+  // Wildlife and people are contextual selections inside the current grove
+  // view. They must never enter the tree-only measure/isolation camera path:
+  // doing so filters every tree while leaving the selected visitor floating.
+  if(!isTreeSceneTarget(nextTarget)){render();return;}
+  const plan=sceneCameraPlanForTarget(selectedSceneTarget);
+  cameraViewportSignature=sceneViewportSignature();
+  animateSceneTargetComparison(fromView,plan,selectedSceneTarget,cameraStateKey(selectedSceneTarget),sceneTargetTravelFraction(previousTarget,selectedSceneTarget));
+}
+
+function sceneTargetTravelFraction(fromTarget,toTarget){
+  const positions=sceneHitTargets.filter(isTreeSceneTarget).map(target=>Number(target.mapPosition)).filter(Number.isFinite);
+  const fromPosition=Number(fromTarget?.mapPosition)||0,toPosition=Number(toTarget?.mapPosition)||0;
+  positions.push(fromPosition,toPosition);
+  const span=Math.max(...positions)-Math.min(...positions);
+  return span>0?Math.min(1,Math.abs(toPosition-fromPosition)/span):0;
+}
+
+function cancelSceneCameraAnimation(){
+  cameraRevision+=1;
+  if(cameraAnimationFrame!==null)cancelAnimationFrame(cameraAnimationFrame);
+  cameraAnimationFrame=null;
+  comparisonCameraView=null;
+}
+
+function currentAbsoluteCameraView(){
+  if(comparisonCameraView)return{...comparisonCameraView};
+  const worldZoom=Number(els.canvas.dataset.worldZoom),groundY=Number(els.canvas.dataset.groundY);
+  return{
+    x:sceneCamera.x,
+    groundY:Number.isFinite(groundY)?groundY:sceneViewport().renderHeight*.7,
+    worldZoom:Number.isFinite(worldZoom)&&worldZoom>0?worldZoom:1,
+  };
+}
+
+function sceneViewport() {
+  const rect = els.canvas.getBoundingClientRect();
+  const hudRect = els.hudPanel.getBoundingClientRect();
+  const minimapRect = els.groveMinimap?.getBoundingClientRect();
+  const height=Math.max(240,Math.round(rect.height||600));
+  return sceneSafeViewport({canvasRect:rect,hudRect,minimapRect,started:state.started,margin:height<=500?8:12});
+}
+
+function sceneViewportSignature(viewport=sceneViewport()){
+  return`${viewport.width}:${viewport.height}:${viewport.topInset}:${viewport.bottomInset}:${viewport.leftInset||0}:${viewport.rightInset||0}`;
+}
+
+function cameraStateKey(target=activeSceneTarget()){
+  return`${target?.id||'player'}:${target?.stageName||computeCurrentLifeStage().name}:${target?.title||state.selectedSpecies||''}:${sceneViewportSignature()}`;
+}
+
+function measureSceneTarget(targetId, zoom, { baseline = false } = {}) {
+  const viewport = sceneViewport();
+  const canvas = document.createElement('canvas');
+  // Measure on a generously padded bitmap while retaining the live canvas's
+  // logical dimensions. During zoom fitting, a tree can temporarily exceed
+  // the viewport; clipping that intermediate render makes the camera mistake
+  // a surviving fragment for the complete canopy/root system.
+  canvas.width = viewport.width * 2;
+  canvas.height = viewport.renderHeight * 2;
+  const logicalCanvas = {
+    width: viewport.width,
+    height: viewport.renderHeight,
+    dataset: {},
+    measurementWidth: canvas.width,
+    measurementHeight: canvas.height,
+  };
+  const rendered = renderForestScene({
+    ctx: canvas.getContext('2d'), canvas: logicalCanvas,
+    immersive: true, frameSelectedSubject: true,
+    viewOffset: { x: 0, y: 0 }, zoomMultiplier: zoom,
+    state: baseline && targetId === 'player' ? {
+      ...state, rootZones: computeCurrentLifeStage().name === 'Seed' ? 0 : 1,
+      leafClusters: computeCurrentLifeStage().name === 'Seed' ? 0 : 2,
+      taprootDepth: 0, branches: 0, trunk: 1, canopySpread: 0, heightGrowth: 0,
+      visualGrowth: null, thornDefense: 0, toxicLeaves: 0,
+    } : state,
+    currentSeason: currentSeason(), playerStageName: computeCurrentLifeStage().name,
+    getNeighborTree, getRelationshipState, topInset: viewport.topInset,
+    selectedTargetId: targetId,measureTargetId:targetId,
+  });
+  return{
+    bounds:rendered?.measuredBounds||rendered?.hitTargets?.find(candidate => candidate.id === targetId)?.bounds||null,
+    groundY:rendered?.groundY,
+    worldZoom:rendered?.worldZoom,
+  };
+}
+
+function sceneCameraPlanForTarget(target) {
+  const viewport = sceneViewport();
+  if (!target) return {camera:{x:0,y:0,zoom:1},groundY:viewport.renderHeight*.7,worldZoom:1};
+  const stageName=target.stageName||computeCurrentLifeStage().name;
+  const baseline = target.id === 'player';
+  const baseMetrics = measureSceneTarget(target.id, 1, { baseline });
+  if (!baseMetrics.bounds) return {camera:{x:0,y:0,zoom:1},groundY:viewport.renderHeight*.7,worldZoom:1};
+  let zoom=1,fittedMetrics=baseMetrics;
+  // Raster bounds and stage artwork are not perfectly linear at tiny sizes,
+  // so converge the measured limiting extent instead of assuming one pass.
+  for(let pass=0;pass<3;pass+=1){
+    zoom=targetSceneZoom(fittedMetrics.bounds,viewport,{currentZoom:zoom,stageName});
+    const measured=measureSceneTarget(target.id,zoom,{baseline});
+    if(measured.bounds)fittedMetrics=measured;
+  }
+  const baselineOffset=centeredSceneOffset(fittedMetrics.bounds,viewport);
+  // Full tissue bounds are a safety check, not the input to stage scale.
+  // Hold the baseline collar/soil position until real viewport overflow.
+  let actualMetrics=measureSceneTarget(target.id,zoom);
+  for(let pass=0;pass<3&&actualMetrics.bounds;pass+=1){
+    const safeZoom=containmentSceneZoom(actualMetrics.bounds,viewport,zoom);
+    if(Math.abs(safeZoom-zoom)<.0001)break;
+    zoom=safeZoom;
+    actualMetrics=measureSceneTarget(target.id,zoom);
+  }
+  fittedMetrics=actualMetrics.bounds?actualMetrics:fittedMetrics;
+  const offset=containmentSceneOffset(fittedMetrics.bounds,viewport,baselineOffset);
+  const camera={...offset,zoom};
+  const validCamera=isValidSceneCamera(camera)?camera:{x:0,y:0,zoom:1};
+  return{
+    camera:validCamera,
+    groundY:(Number.isFinite(fittedMetrics.groundY)?fittedMetrics.groundY:viewport.renderHeight*.7)+validCamera.y,
+    worldZoom:Number.isFinite(fittedMetrics.worldZoom)&&fittedMetrics.worldZoom>0?fittedMetrics.worldZoom:1,
+  };
+}
+
+function sceneCameraForTarget(target){return sceneCameraPlanForTarget(target).camera}
+
+function animateSceneTargetComparison(from,plan,target,expectedStateKey,travelFraction=0){
+  const to=plan.camera;
+  if(!isValidSceneCamera(to)||!Number.isFinite(from?.x)||!Number.isFinite(from?.groundY)||!Number.isFinite(from?.worldZoom)||from.worldZoom<=0){
+    comparisonCameraView=null;sceneCamera=isValidSceneCamera(to)?to:{x:0,y:0,zoom:1};render();return;
+  }
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+    comparisonCameraView=null;sceneCamera=to;render();return;
+  }
+  const revision=++cameraRevision,startedAt=performance.now();
+  const panX=-(Number(target?.mapPosition)||0)*from.worldZoom;
+  const destination={x:to.x,groundY:plan.groundY,worldZoom:plan.worldZoom};
+  const duration=comparisonCameraDuration({from,to:destination,travelFraction});
+  // Establish the transition before the first animation frame. Layout and
+  // artwork callbacks may refit immediately after the player's larger dock
+  // returns; without this state they can mistake the transition for idle and
+  // snap straight to the final camera.
+  comparisonCameraView={phase:'transition',done:false,...from};
+  const tick=now=>{
+    if(revision!==cameraRevision)return;
+    if(expectedStateKey!==cameraStateKey()){
+      cameraAnimationFrame=null;
+      restartSceneTargetComparison();
+      return;
+    }
+    const frame=comparisonCameraFrame({from,panX,to:destination,elapsed:now-startedAt,duration});
+    comparisonCameraView=frame;
+    render();
+    if(!frame.done)cameraAnimationFrame=requestAnimationFrame(tick);
+    else{
+      cameraAnimationFrame=null;
+      comparisonCameraView=null;
+      sceneCamera=to;
+      render();
+    }
+  };
+  cameraAnimationFrame=requestAnimationFrame(tick);
+}
+
+function restartSceneTargetComparison(){
+  if(!comparisonCameraView)return refitSceneCamera();
+  const from=currentAbsoluteCameraView(),target=activeSceneTarget();
+  cancelSceneCameraAnimation();
+  const plan=sceneCameraPlanForTarget(target);
+  cameraViewportSignature=sceneViewportSignature();
+  animateSceneTargetComparison(from,plan,target,cameraStateKey(target));
+}
+
+function animateSceneCamera(to,expectedStateKey=cameraStateKey()) {
+  if(!isValidSceneCamera(to))to={x:0,y:0,zoom:1};
+  const revision=++cameraRevision;
+  comparisonCameraView=null;
+  const from = { ...sceneCamera };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    sceneCamera = to;
+    render();
+    return;
+  }
+  const startedAt = performance.now();
+  const duration = 620;
+  const tick = now => {
+    if(revision!==cameraRevision)return;
+    if(expectedStateKey!==cameraStateKey()){cameraAnimationFrame=null;return}
+    const progress = Math.min(1, (now - startedAt) / duration);
+    sceneCamera = interpolateSceneCamera(from, to, progress);
+    render();
+    if (progress < 1) cameraAnimationFrame = requestAnimationFrame(tick);
+    else {
+      cameraAnimationFrame = null;
+    }
+  };
+  cameraAnimationFrame = requestAnimationFrame(tick);
+}
+
+function refitSceneCamera({animate=false}={}){
+  if(!state.started)return render();
+  const target=activeSceneTarget(),expectedKey=cameraStateKey(target),to=sceneCameraForTarget(target);
+  if(expectedKey!==cameraStateKey(target))return;
+  cancelSceneCameraAnimation();
+  cameraViewportSignature=sceneViewportSignature();
+  if(animate)animateSceneCamera(to,expectedKey);
+  else{sceneCamera=to;render()}
+}
+
+function settleActiveSceneCamera(){
+  cancelSceneCameraAnimation();
+  selectedSceneTarget=activeSceneTarget();
+  sceneCamera=sceneCameraForTarget(selectedSceneTarget);
+  cameraViewportSignature=sceneViewportSignature();
+  render();
+}
+
+function scheduleSceneCameraRefit(){
+  if(cameraLayoutFrame!==null)return;
+  cameraLayoutFrame=requestAnimationFrame(()=>{
+    cameraLayoutFrame=null;
+    if(state.started&&cameraViewportSignature!==sceneViewportSignature())restartSceneTargetComparison();
+  });
+}
+
+// Floating feedback system
+function initSpeciesSelect() {
+  return initSpeciesSelectController({
+    state,
+    speciesNames: Object.keys(SPECIES),
+    chooseRandomIndex: length => randomInt(length),
+    renderSpeciesSelect: speciesName => initSpeciesSelectUI(els, speciesName, name => renderSpeciesSummary(name, SPECIES[name], { title: `${name} tree`, reveal: true })),
+  });
+}
+
+function startGame() {
+  const spec = SPECIES[state.selectedSpecies];
+  contextualActionOrderByTarget.clear();
+  contextualActionScrollByTarget.clear();
+  return startBrowserGame({
+    state,
+    initPanelCollapse: () => initPanelCollapseUI(els),
+    selectedSpecies: state.selectedSpecies,
+    species: spec,
+    initialLifeStage: LIFE_STAGES[0],
+    makeStartingNeighbors,
+    initTooltips,
+    initCollapsibleGroups,
+    addLog,
+    updateUI,
+    showResourcePhase,
+    showGamePanels: () => showGamePanelsUI(els),
+    random: Math.random,
+  });
+}
+
+let engine;
+
+function currentSeason() { return engine.currentSeason(state); }
+
+
+function recordPopup(title, body) {
+  if (!state.started) return;
+  const text = modalPlainText(body);
+  const excerpt = text.slice(0, 220);
+  const recent = state.log.slice(0, 4).some(line =>
+    line.includes(`${title}:`) || (excerpt.length >= 24 && line.includes(excerpt.slice(0, 80)))
+  );
+  if (!recent) addLog(buildPopupLogMessage(title, body));
+}
+
+function showModal(title, body, onContinue, { record = true, ...presentation } = {}) {
+  if (record) recordPopup(title, body);
+  return afterGrowthAnimation(() => showStandardModal(els, title, body, onContinue, presentation));
+}
+
+function presentSeasonChange({ season, year }, onContinue) {
+  const presentation = seasonChangePresentation(season.name, year);
+  showModal(
+    presentation.title,
+    renderSeasonChangeBody(presentation),
+    onContinue,
+    {
+      kind: 'season-change',
+      eyebrow: presentation.eyebrow,
+      sceneArt: presentation.sceneArt,
+      buttonLabel: presentation.buttonLabel,
+    },
+  );
+}
+
+const POST_GROWTH_DIALOG_PAUSE_MS = 1000;
+
+function afterGrowthAnimation(open) {
+  // Some choice outcomes request a dialog before their normal render hook.
+  // Draw now so any newly changed tissue starts its reveal before we check it.
+  render();
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches && growthCameraRefitFrame !== null) {
+    cancelAnimationFrame(growthCameraRefitFrame);
+    growthCameraRefitFrame = null;
+    refitSceneCamera();
+    return open();
+  }
+  if (!growthTransition && growthCameraRefitFrame === null) return open();
+
+  const app = document.getElementById('app');
+  const previousFocus = document.activeElement;
+  if (app) app.inert = true;
+  let finalFrameDrawnAt = null;
+  const waitForPaint = () => {
+    if (!els.canvas.isConnected) {
+      if (app) app.inert = false;
+      return;
+    }
+    if (growthTransition || growthCameraRefitFrame !== null || cameraAnimationFrame !== null) {
+      finalFrameDrawnAt = null;
+    } else if (finalFrameDrawnAt !== null &&
+        performance.now() - finalFrameDrawnAt >= POST_GROWTH_DIALOG_PAUSE_MS) {
+      // Leave the completed growth visible before covering it with a dialog.
+      if (app) app.inert = false;
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+      open();
+      return;
+    } else if (finalFrameDrawnAt === null) {
+      finalFrameDrawnAt = performance.now();
+    }
+    requestAnimationFrame(waitForPaint);
+  };
+  requestAnimationFrame(waitForPaint);
+}
+
+function generateSuccessionChoices(count = 3) {
+  const templates = [
+    {
+      label: 'Deep-rooted heir',
+      summary: 'Begins sturdier belowground, with better roots and a thicker trunk.',
+      stats: {
+        health: Math.max(6, Math.floor(state.maxHealth * 0.72)),
+        maxHealth: Math.max(6, Math.floor(state.maxHealth * 0.72)),
+        branches: Math.max(1, Math.floor(state.branches * 0.45)),
+        rootZones: Math.max(2, Math.floor(state.rootZones * 0.75)),
+        leafClusters: Math.max(1, Math.floor(state.leafClusters * 0.45)),
+        trunk: Math.max(1, Math.floor(state.trunk * 0.75)),
+      },
+    },
+    {
+      label: 'Leaf-bright heir',
+      summary: 'Starts with a livelier crown and more sunlight-gathering potential.',
+      stats: {
+        health: Math.max(6, Math.floor(state.maxHealth * 0.68)),
+        maxHealth: Math.max(6, Math.floor(state.maxHealth * 0.68)),
+        branches: Math.max(1, Math.floor(state.branches * 0.7)),
+        rootZones: Math.max(1, Math.floor(state.rootZones * 0.5)),
+        leafClusters: Math.max(2, Math.floor(state.leafClusters * 0.8)),
+        trunk: Math.max(1, Math.floor(state.trunk * 0.5)),
+      },
+    },
+    {
+      label: 'Hardy survivor',
+      summary: 'A balanced descendant carrying enough structure to recover steadily.',
+      stats: {
+        health: Math.max(7, Math.floor(state.maxHealth * 0.75)),
+        maxHealth: Math.max(7, Math.floor(state.maxHealth * 0.75)),
+        branches: Math.max(1, Math.floor(state.branches * 0.55)),
+        rootZones: Math.max(1, Math.floor(state.rootZones * 0.6)),
+        leafClusters: Math.max(1, Math.floor(state.leafClusters * 0.6)),
+        trunk: Math.max(1, Math.floor(state.trunk * 0.6)),
+      },
+    },
+  ];
+  return templates.slice(0, Math.max(1, Math.min(count, templates.length)));
+}
+
+function continueAsSuccessor(choice) {
+  state.offspringPool = Math.max(0, state.offspringPool - 1);
+  const successor = state.offspringRecords?.find(child => !child.dead);
+  if (successor) successor.dead = true;
+  state.health = choice.stats.health;
+  state.maxHealth = choice.stats.maxHealth;
+  state.branches = choice.stats.branches;
+  state.rootZones = choice.stats.rootZones;
+  state.leafClusters = choice.stats.leafClusters;
+  state.trunk = choice.stats.trunk;
+  state.heightGrowth = 0;
+  state.spindlyGrowth = 0;
+  state.flowers = 0;
+  state.pollinated = 0;
+  state.developing = 0;
+  state.seeds = 0;
+  state.sunlight = Math.max(0, Math.floor(state.sunlight * 0.35));
+  state.water = Math.max(0, Math.floor(state.water * 0.35));
+  state.nutrients = Math.max(0, Math.floor(state.nutrients * 0.35));
+  addLog(`Your current tree died, but the lineage continues through a ${choice.label.toLowerCase()}.`);
+  showFeedback('A chosen offspring carries the lineage onward.', 'warning');
+  updateAlliesCount();
+  updateScore();
+  updateUI();
+  render();
+  showResourcePhase();
+}
+
+function showChoiceModal(title, body, choices, presentation = {}) {
+  recordPopup(title, body);
+  return afterGrowthAnimation(() => showChoiceModalUI(els, title, body, choices, presentation));
+}
+
+function showGameOverScreen(summary) {
+  document.body.classList.remove('game-started');
+  document.getElementById('detail-sheet')?.close();
+  els.modal?.classList.add('hidden');
+  document.querySelectorAll('.game-panel, #species-panel').forEach(panel => panel.classList.add('hidden'));
+  const app = document.getElementById('app');
+  app.innerHTML = renderFullGameOverBody(summary);
+  document.getElementById('try-again')?.addEventListener('click', () => window.location.reload());
+}
+
+function buildIncidentDecision(incident) {
+  return buildSharedIncidentDecision(state, incident, { computeCurrentLifeStage, getRelationshipState, compareConflictPower, getNeighborStage });
+}
+
+function resolveIncidentDecision(incident, decision, optionId) {
+  return resolveSharedIncidentDecision(state, incident, decision, optionId, {
+    getRelationshipState, compareConflictPower, applyRelationshipDelta, getNeighborStage, recordDamage, random: Math.random,
+  });
+}
+function processIncidentResponses(onDone, progress = null) {
+  const queueProgress = progress || { total: queuedResponseIncidents(state).length, completed: 0 };
+  const [incident] = queuedResponseIncidents(state);
+  if (!incident) return onDone?.();
+  const decision = buildIncidentDecision(incident);
+  if (!decision) {
+    resolveIncident(state, incident.id, { title: incident.title, summary: 'The encounter ended before a response was needed.' });
+    return processIncidentResponses(onDone, { ...queueProgress, completed: queueProgress.completed + 1 });
+  }
+  const queueIndex = Math.min(queueProgress.total, queueProgress.completed + 1);
+  showChoiceModal(
+    decision.title,
+    decision.body,
+    decision.options.map(option => ({
+      label: option.label,
+      description: option.description || option.preview || null,
+      disabled: option.affordable === false || option.disabled === true,
+      onChoose: () => {
+        const outcome = resolveIncidentDecision(incident, decision, option.id);
+        refreshMainView();
+        return {
+          title: outcome.title || decision.title,
+          body: outcome.body || `<p>${outcome.summary || ''}</p>`,
+          onContinue: () => {
+            if (outcome.fatal || state.health <= 0) return handleDeath();
+            processIncidentResponses(onDone, { ...queueProgress, completed: queueProgress.completed + 1 });
+          },
+        };
+      },
+    })),
+    {
+      kind: 'encounter-queue',
+      eyebrow: `Encounter ${queueIndex} of ${Math.max(queueProgress.total, queueIndex)}`,
+      sceneArt: incident.artwork,
+      resolveInPlace: true,
+    },
+  );
+}
+
+function showResourcePhase({ quiet = false, pendingChecked = false } = {}) {
+  if (state.gameOver) return;
+  setTurnEndBanner('');
+  const pendingStartOfTurn = pendingChecked ? [] : resolvePendingStartOfTurnEffects(state);
+  if (pendingStartOfTurn.length) {
+    pendingStartOfTurn.forEach(effect => addLog(`${effect.title}: ${effect.body}`));
+    updateScore();
+    updateUI();
+    render();
+    const effect = pendingStartOfTurn[0];
+    showModal(effect.title, renderIncidentOutcomeBody(effect), () => {
+      const incident = getIncident(state, effect.incidentId);
+      if (incident?.meta) incident.meta.reportPending = false;
+      if (state.health <= 0) return handleDeath();
+      showResourcePhase({ quiet, pendingChecked: true });
+    }, {
+      record: false,
+      kind: 'incident-outcome',
+      eyebrow: 'Incident outcome',
+      sceneArt: effect.sceneArt,
+      buttonLabel: 'Continue to gathering',
+    });
+    return;
+  }
+  if (!quiet && maybeAnnounceProgressiveActionUnlocks(() => showResourcePhase({ quiet }))) return;
+  if (quiet && (state.turnsElapsed || 0) === 0) {
+    renderActions();
+    return;
+  }
+  if (shouldSkipGathering(state)) {
+    state.actions = Math.max(1, state.actions || 0);
+    updateUI();
+    render();
+    if (state.skipNextUngrownWarning) {
+      state.skipNextUngrownWarning = false;
+      renderActions();
+      return;
+    }
+    addLog('You gathered no resources because you have not begun to grow.');
+    showModal('Growth Must Begin', '<p><em>You remain folded within the seed, with no roots in the soil and no leaves in the light.</em></p><p><strong>Extend your first root</strong> so you can begin drawing water and nutrients. Leaves will follow, opening your tissues to sunlight.</p>', () => renderActions());
+    return;
+  }
+  return engine.startTurn(state, {
+    addLog,
+    presentResources: (gains) => {
+      const enterActionPhase = () => {
+        applyGatheringActionAward(state, gains);
+        updateUI();
+        renderActions();
+      };
+      if (quiet) {
+        enterActionPhase();
+        return;
+      }
+      const nudge = updateResourceShortageNudges(state, gains);
+      showModal('Resources', renderResourcePhaseBody({ state, gains }), () => {
+        if (nudge) {
+          addLog(nudge.log);
+          showModal(nudge.title, `<p><em>${nudge.body}</em></p><p>${nudge.remedy}</p>`, enterActionPhase);
+        } else enterActionPhase();
+      }, { record: false, kind: 'gathering', eyebrow: `${gains.season.name} · Year ${state.year}` });
+    },
+  });
+}
+
+
+function canAfford(cost) {
+  return state.sunlight >= (cost.sunlight || 0) && 
+         state.water >= (cost.water || 0) && 
+         state.nutrients >= (cost.nutrients || 0) && 
+         state.actions > 0;
+}
+
+function spend(cost) {
+  state.sunlight -= (cost.sunlight || 0);
+  state.water -= (cost.water || 0);
+  state.nutrients -= (cost.nutrients || 0);
+  state.actions -= 1;
+}
+
+function makeStartingNeighbors() {
+  return createStartingNeighbors(Object.keys(SPECIES), LIFE_STAGES, Math.random);
+}
+
+function getNeighborAtSlot(idx) {
+  return state.neighbors.find(n => n.slot === idx && !n.dead) || null;
+}
+
+function updateAlliesCount() {
+  return updateAlliesCountForState(state, getRelationshipState);
+}
+
+function growNeighbors() {
+  const activeShadeTarget = normalizePlayerShadeTarget(state);
+  state.neighbors.forEach(n => {
+    if (n.dead) {
+      const transition = advanceNeighborDeathCycle(n, { speciesNames: Object.keys(SPECIES), seedlingThreshold: STAGE_BY_NAME.Seedling.threshold, random: Math.random });
+      if (transition.phase === 'seedling') {
+        addLog(`A new ${n.species} seedling rises where the fallen tree decayed.`);
+      }
+      return;
+    }
+    const baseGrowth = 20 + Math.floor(Math.random() * 35);
+      n.stageScore += neighborGrowthFromLight(baseGrowth, n, activeShadeTarget) + neighborRhizosphereGrowthBonus(n);
+    const heightChange = reconcileCanopyHeight(state, n, getNeighborStage, getRelationshipState);
+    if (heightChange) openIncident(state, {
+      kind: 'canopy-notice', title: 'The Canopy Shifts', summary: heightChange.message,
+      artwork: `tree:${n.species}:${getNeighborStage(n).name}`, severity: 'neutral',
+      subject: { type: 'neighbor', species: n.species, slot: n.slot, stageName: getNeighborStage(n).name },
+      meta: { kind: heightChange.kind, neighborSlot: n.slot, reportPending: true },
+    });
+    if (getRelationshipState(n.relation).name === 'Hostile' && (n.slot === 1 || n.slot === 3) && canNeighborShadePlayer(state, n, getNeighborStage) && Math.random() < 0.25) {
+      const newlyCrowding = !n.shadingPlayer;
+      n.shadingPlayer = true;
+      n.playerShading = false;
+      if (newlyCrowding) openIncident(state, {
+        kind: 'canopy-notice', title: 'A Taller Rival Crowds You',
+        summary: `The hostile ${n.species} has grown tall enough to lean over you. Its crown begins stealing your light. Grow Taller to escape its shade, or use diplomacy to soften the hostility.`,
+        artwork: `tree:${n.species}:${getNeighborStage(n).name}`, severity: 'warning',
+        subject: { type: 'neighbor', species: n.species, slot: n.slot, stageName: getNeighborStage(n).name },
+        meta: { kind: 'hostile-crowding', neighborSlot: n.slot, reportPending: true },
+      });
+    }
+  });
+  growOffspringRecords(state);
+}
+
+function chooseNeighborModal(onPick, filterFn = () => true, title = 'Choose a neighboring tree', body = 'Your roots probe the soil for a possible connection.', includeBack = false, onBack = resumeTurnFlow, displayForNeighbor = null) {
+  const choices = state.neighbors
+    .filter(n => !n.dead)
+    .filter(filterFn)
+    .map(n => {
+      const rel = getRelationshipState(n.relation).name.toLowerCase();
+      const healthText = typeof n.health === 'number' && typeof n.maxHealth === 'number' ? ` · ${n.health}/${n.maxHealth} health` : '';
+      const display = displayForNeighbor?.(n);
+      const presentation = typeof display === 'string' ? { label: display } : (display || {});
+      return {
+        label: presentation.label || `${n.species} (${rel}${healthText})`,
+        description: presentation.description,
+        group: presentation.group,
+        groupDescription: presentation.groupDescription,
+        groupOrder: presentation.groupOrder,
+        species: presentation.species || n.species,
+        disabled: presentation.disabled,
+        onChoose: () => onPick(n),
+      };
+    })
+    .sort((left, right) => (left.groupOrder ?? Number.POSITIVE_INFINITY) - (right.groupOrder ?? Number.POSITIVE_INFINITY));
+  if (includeBack) choices.push({ label: 'Back', onChoose: () => onBack?.() });
+  showChoiceModal(title, `<p>${body}</p>`, choices);
+}
+
+function relationshipFlavorChange(oldState, newState, species) {
+  const key = `${oldState}->${newState}`;
+  const lines = {
+    'Ally->Dead': `The ${species} is gone from the grove. Its roots no longer answer yours.`,
+    'Friendly->Dead': `The ${species} dies, and the soil falls quiet where it once spoke.`,
+    'Neutral->Dead': `The ${species} dies and leaves an empty space in the grove.`,
+    'Rival->Dead': `The ${species} dies. Even rivalry ends in silence.`,
+    'Hostile->Dead': `The ${species} dies, and the chemical bitterness fades from the soil.`,
+    'Neutral->Friendly': `The ${species} no longer treats you as a stranger. Your roots are noticed now.`,
+    'Friendly->Ally': `The ${species} welcomes you fully. Beneath the soil, you are allies now.`,
+    'Rival->Neutral': `The bitterness in the soil eases. The ${species} no longer treats you as a rival.`,
+    'Hostile->Rival': `The ${species} still resents you, but the first fury has cooled into rivalry.`,
+    'Hostile->Neutral': `The chemical war subsides. The ${species} withdraws its hatred and turns wary instead.`,
+    'Friendly->Neutral': `The ${species} grows more guarded. The bond between you weakens.`,
+    'Neutral->Rival': `The ${species} begins to contest your place in the forest.`,
+    'Rival->Hostile': `The ${species} turns openly hostile. The soil itself feels poisonous.`,
+  };
+  return lines[key] || `Your standing with the ${species} changes: ${oldState} → ${newState}.`;
+}
+
+function showRelationshipChangeModal(species, oldState, newState, onContinue) {
+  if (oldState === newState) return onContinue?.();
+  showModal(`Relationship Shift: ${species}`, `<p><em>${relationshipFlavorChange(oldState, newState, species)}</em></p><p>Status changed from <strong>${oldState}</strong> to <strong>${newState}</strong>.</p>`, onContinue);
+}
+
+function refreshMainView({ actions = false } = {}) {
+  updateAlliesCount();
+  updateScore();
+  updateUI();
+  render();
+  if (actions) renderActions();
+}
+
+function refreshRenderedView({ actions = false } = {}) {
+  updateUI();
+  render();
+  if (actions) renderActions();
+}
+
+function continueWithRelationshipChange(species, oldState, newState, onDone, { actions = false } = {}) {
+  showRelationshipChangeModal(species, oldState, newState, () => {
+    refreshRenderedView({ actions });
+    if (newState === 'Ally' && maybeAnnounceProgressiveActionUnlocks(onDone)) return;
+    onDone?.();
+  });
+}
+
+function maybeShowMilestone(key, title, body, onContinue) {
+  if (state.milestones[key]) return false;
+  state.milestones[key] = true;
+  showModal(title, `<p><em>${body}</em></p>`, onContinue);
+  return true;
+}
+
+function maybeTriggerActionMilestone(actionKey) {
+  if (actionKey === 'extendRoot' && state.rootZones === 1) {
+    return maybeShowMilestone('firstRoot', 'First Root', 'Your first root slips into the soil, tasting darkness, moisture, and promise.', () => {
+      resumeTurnFlow();
+    });
+  }
+  if (actionKey === 'growLeaves' && state.leafClusters === 1) {
+    return maybeShowMilestone('firstLeaf', 'First Leaves', 'Your first leaves unfurl into the light. The sun is no longer a rumor but a source of life.', () => {
+      resumeTurnFlow();
+    });
+  }
+  if (actionKey === 'growLeaves' && state.leafClusters === 2) {
+    return maybeShowMilestone('fullCrown', 'A Wider Reach', 'More green spreads above you. You are no longer merely surviving; you are beginning to claim space.', () => {
+      resumeTurnFlow();
+    });
+  }
+  return false;
+}
+
+
+
+function updateNeighborAliveState(neighbor, cause = 'hardship') {
+  const death = markNeighborDead(state, neighbor, cause, { getRelationshipState });
+  if (!death.changed) return false;
+  addLog(`The ${neighbor.species} dies from ${cause}.`);
+  updateAlliesCount();
+  neighbor.deathAge = 0;
+  neighbor.deathStageScore = neighbor.stageScore;
+  state.incidents
+    .filter(incident => incident.state !== 'resolved' && incident.state !== 'expired' && incident.subject?.type === 'neighbor' && incident.subject?.slot === neighbor.slot)
+    .forEach(incident => resolveIncident(state, incident.id, { title: incident.title, summary: `The ${neighbor.species} dies, ending this incident.` }));
+  openIncident(state, {
+    kind: 'neighbor-death',
+    title: death.relationship === 'Ally' ? 'Ally Tree Dies' : 'Neighbor Tree Dies',
+    summary: `The ${neighbor.species} falls silent in the grove. Its roots no longer answer yours.`,
+    artwork: `tree:${neighbor.species}:${getNeighborStage(neighbor).name}`,
+    severity: 'bad',
+    effects: [`Relationship at death: ${death.relationship}`, `Cause: ${cause}`],
+    subject: { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor).name },
+  });
+  return true;
+}
+
+function crisisLabel(crisis) {
+  const icon = crisis.kind === 'nutrients' ? '🌱' : crisis.kind === 'water' ? '💧' : '☀️';
+  return `${crisis.title} (${crisis.amount}${icon})`;
+}
+
+function createAllyCrisis(neighbor) {
+  const options = [
+    { kind: 'nutrients', title: 'Mite bloom', amount: 8, severity: 2, healthLoss: 2, flavors: [
+      `The ${neighbor.species}'s bark crawls with mites. The infestation is eating into its reserves.`,
+      `The ${neighbor.species} is still struggling with mites. The crawling pressure is spreading into fresh tissue.`,
+      `The ${neighbor.species} is losing ground to the mites. Its distress comes through the roots in ragged pulses.`
+    ]},
+    { kind: 'water', title: 'Dry roots', amount: 7, severity: 2, healthLoss: 2, flavors: [
+      `The ${neighbor.species}'s leaves hang limp. Its roots are finding only dust.`,
+      `The ${neighbor.species} is still desiccating. It begs for water through the fungal dark.`,
+      `The ${neighbor.species} is close to collapse from thirst. Even its cambium feels brittle.`
+    ]},
+    { kind: 'nutrients', title: 'Blight recovery', amount: 10, severity: 3, healthLoss: 3, flavors: [
+      `The ${neighbor.species} has spent itself fighting blight. It needs dense reserves to recover.`,
+      `The ${neighbor.species} is still trying to wall off blight. Its reserves are nearly gone.`,
+      `The ${neighbor.species} can barely contain the blight now. Without rich help, it may die.`
+    ]}
+  ];
+  const chosen = options[Math.floor(Math.random() * options.length)];
+  return { ...chosen, stage: 0, id: `${Date.now()}-${Math.random()}` };
+}
+
+function maybeAddAllyCrisis(neighbor) {
+  const allowMultiple = computeCurrentLifeStage().rank >= STAGE_BY_NAME['Young Tree'].rank;
+  neighbor.activeCrises = neighbor.activeCrises || [];
+  if (!allowMultiple && neighbor.activeCrises.length > 0) return null;
+  const crisis = createAllyCrisis(neighbor);
+  neighbor.activeCrises.push(crisis);
+  return crisis;
+}
+
+function advanceAllyCrises(events) {
+  for (const neighbor of state.neighbors) {
+    if (neighbor.dead) continue;
+    if (getRelationshipState(neighbor.relation).name !== 'Ally') continue;
+    neighbor.activeCrises = neighbor.activeCrises || [];
+    if (neighbor.activeCrises.length === 0 && Math.random() < (state.alliedNeighbors === 1 ? 0.22 : 0.3)) maybeAddAllyCrisis(neighbor);
+    for (const crisis of [...neighbor.activeCrises]) {
+      const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
+      const event = {
+        kind: 'ally-aid',
+        title: `${neighbor.species}: ${crisis.title}`,
+        text: `${flavor} The crisis is deepening.`,
+        effect: 'warning',
+        subject: { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor).name },
+        response: { kind: 'ally-aid', neighborSlot: neighbor.slot, crisisId: crisis.id },
+      };
+      const existing = findActiveIncident(state, 'ally-aid', incident => incident.response?.neighborSlot === neighbor.slot && incident.response?.crisisId === crisis.id);
+      if (existing) {
+        awaitIncidentResponse(state, existing.id, event);
+        event.existingIncidentId = existing.id;
+      }
+      events.push(event);
+      crisis.stage += 1;
+      neighbor.health = Math.max(0, neighbor.health - crisis.healthLoss);
+      if (neighbor.health <= 0) {
+        events.push({ text: `The ${neighbor.species} finally gives way to ${crisis.title.toLowerCase()}. The crisis ends in silence.`, effect: 'damage' });
+        updateNeighborAliveState(neighbor, crisis.title.toLowerCase());
+        continue;
+      }
+    }
+  }
+}
+
+function advanceChildCrises(events) {
+  const outcomes = advanceOffspringCrises(state, Math.random);
+  for (const outcome of outcomes) {
+    const { child, crisis, flavor, died } = outcome;
+    if (died) {
+      state.offspringPool = Math.max(0, state.offspringPool - 1);
+      const existing = findActiveIncident(state, 'offspring-aid', incident => incident.response?.childId === child.id && incident.response?.crisisId === crisis.id);
+      if (existing) resolveIncident(state, existing.id, { title: 'Offspring Lost', summary: `${flavor} The offspring dies before more help can reach it.` });
+      events.push({ text: `${flavor} The ${child.species} offspring dies before more help can reach it.`, effect: 'offspring-loss' });
+      continue;
+    }
+    const event = {
+      kind: 'offspring-aid',
+      title: `${child.species} offspring: ${crisis.title}`,
+      text: `${flavor} The crisis is deepening.`,
+      effect: 'warning',
+      subject: { type: 'offspring', id: child.id, species: child.species, stageName: describeOffspring(state, LIFE_STAGES).find(entry => entry.id === child.id)?.stageName || 'Seedling' },
+      response: { kind: 'offspring-aid', childId: child.id, crisisId: crisis.id },
+    };
+    const existing = findActiveIncident(state, 'offspring-aid', incident => incident.response?.childId === child.id && incident.response?.crisisId === crisis.id);
+    if (existing) {
+      awaitIncidentResponse(state, existing.id, event);
+      event.existingIncidentId = existing.id;
+    }
+    events.push(event);
+  }
+}
+
+function checkAllyBetrayal(events) {
+  return checkAllyBetrayalForState(state, events, {
+    computeCurrentLifeStage,
+    STAGE_BY_NAME,
+    getRelationshipState,
+    getNeighborStage,
+    random: Math.random,
+    recordDamage,
+  });
+}
+
+function resinReserveAction(s, context = {}) {
+  const { transaction } = context;
+  const finish = (applyChoice, title, body) => {
+    transaction?.commit();
+    applyChoice();
+    showModal(title, body, () => transaction?.complete());
+  };
+  const choices = [
+    { label: 'Saturate bark with bitter resin (−12🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 12); state.defense += 2; state.eventModifiers.disease = Math.max(state.eventModifiers.disease, 0.95); }, 'Resin Reserve', '<p>Your tissues run bitter and guarded. Insects and infection will have a harder time taking hold.</p>') },
+  ];
+  if (!hasStoredProtection(state)) {
+    choices.push({ label: 'Build emergency defensive stores (−16🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 16); state.fruitDefense += 2; state.eventModifiers.shelter = 1; }, 'Resin Reserve', '<p>You bank dense reserves against the next hardship, thickening your defensive chemistry.</p>') });
+  }
+  choices.push({ label: 'Back', onChoose: () => transaction?.cancel() });
+  showChoiceModal('Resin Reserve', '<p>How will you spend this dense pulse of nutrients?</p>', choices);
+  return { deferred: true };
+}
+
+function woodSurgeAction(s, context = {}) {
+  const { transaction } = context;
+  const finish = (applyChoice, body) => {
+    transaction?.commit();
+    applyChoice();
+    showModal('Wood Surge', body, () => transaction?.complete());
+  };
+  showChoiceModal('Wood Surge', '<p>How will you spend this growth surge?</p>', [
+    { label: 'Drive down and outward (−12🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 12); state.rootZones += 1; state.taprootDepth += 1; }, '<p>You invest heavily belowground. Your major roots thicken and curve toward deeper water.</p>') },
+    { label: 'Lay on wood and crown (−16🌱)', onChoose: () => finish(() => { state.nutrients = Math.max(0, state.nutrients - 16); state.trunk += 1; state.canopySpread += 1; state.leafClusters += 1; state.maxHealth += 1; state.health = Math.min(state.maxHealth, state.health + 1); }, '<p>You turn surplus nutrients into wood, crown, and living strength.</p>') },
+    { label: 'Back', onChoose: () => transaction?.cancel() }
+  ]);
+  return { deferred: true };
+}
+
+function showResolvedDiplomacyDecision(decision, resolved, onDone = resumeTurnFlow) {
+  const neighbor = resolved.targetIndex == null ? null : state.neighbors[resolved.targetIndex];
+  const neighborName = neighbor?.species || resolved.option?.meta?.species || 'neighbor';
+  const outcome = resolved.outcome;
+
+  if (decision.kind === 'connection') {
+    addLog(outcome.message);
+    showFeedback(outcome.feedback.text, outcome.feedback.type);
+    refreshMainView({ actions: true });
+
+    const affinityLine = outcome.affinityBonus
+      ? `<p><em>Shared species made this contact more likely to succeed.</em></p>`
+      : '';
+    const ageLine = outcome.ageBonus
+      ? `<p><em>${outcome.ageBand === 'young' ? 'This young tree' : 'This established tree'} was more receptive to a new bond.</em></p>`
+      : '';
+    showModal(`Root Contact: ${neighborName}`, `<p>${outcome.message}</p>${affinityLine}${ageLine}<p><strong>Current relationship:</strong> ${outcome.newState}</p>`, () => {
+      refreshRenderedView({ actions: true });
+      continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
+    });
+    return;
+  }
+
+  if (decision.kind === 'ally-aid') {
+    if (!outcome.ok) {
+      if (outcome.reason === 'not-an-ally') {
+        showModal('Aid Cancelled', `<p>The ${neighborName} is not currently an ally, so you cannot send ally aid to it.</p><p><strong>Current relationship:</strong> ${outcome.oldState}</p>`, onDone);
+        return;
+      }
+      if (outcome.reason === 'full-health') {
+        showModal('Aid Not Needed', `<p>The ${neighborName} has returned to full health and no longer needs aid.</p>`, onDone);
+        return;
+      }
+      showModal('Aid Cancelled', `<p>The ${neighborName} can no longer receive ally aid.</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, onDone);
+      return;
+    }
+    const crisisLine = resolved.option.meta?.crisis ? `<p>Your aid ends the ${neighborName}'s ${resolved.option.meta.crisis.title.toLowerCase()}. The crisis has passed.</p>` : '';
+    const paid = outcome.paidCost || { sunlight: 0, water: 0, nutrients: 0 };
+    showModal('Aid Sent', `<p>You send water and nutrients through the fungal dark to the ${neighborName}. It feels the gift, strengthens its growth, and grows warmer toward you.</p>${crisisLine}<p><strong>Spent:</strong> ☀️${paid.sunlight || 0} · 💧${paid.water || 0} · 🌱${paid.nutrients || 0}</p><p><strong>${neighborName} health:</strong> ${neighbor?.health}/${neighbor?.maxHealth}</p>`, () => {
+      refreshMainView();
+      continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone);
+    });
+    return;
+  }
+
+  if (decision.kind === 'ally-help-request') {
+    const threatConclusion = outcome.clearedThreat ? ` The ${outcome.clearedThreat.title.toLowerCase()} is cleared, and the danger has passed.` : '';
+    const unit = outcome.requestKind === 'health' ? 'health' : outcome.requestKind;
+    addLog(`${outcome.tone} You receive ${outcome.actualAmount} ${unit} from ${neighborName}.${threatConclusion}`);
+    const threatBody = outcome.clearedThreat ? `<p>The ${outcome.clearedThreat.title.toLowerCase()} is cleared by the allied response.</p><p class="threat-status threat-solved">The danger has passed.</p>` : '';
+    showModal('Allied Aid', `<p>${outcome.tone}</p><p><strong>${neighborName}</strong> gives you <strong>${outcome.actualAmount} ${unit}</strong>.</p>${threatBody}`, () => {
+      refreshMainView({ actions: true });
+      continueWithRelationshipChange(neighborName, outcome.oldState, outcome.newState, onDone, { actions: true });
+    });
+    return;
+  }
+
+  if (decision.kind === 'aggression:shade') {
+    const released = outcome.releasedShadeTarget ? `<p>Your crown withdraws from the ${outcome.releasedShadeTarget.species}; only one neighboring tree can remain beneath your shade.</p>` : '';
+    const offspringWarning = outcome.shadedOffspringCount ? `<p class="threat-status threat-growing"><strong>${outcome.shadedOffspringCount} of your offspring ${outcome.shadedOffspringCount === 1 ? 'is' : 'are'} also on this side.</strong> ${outcome.shadedOffspringCount === 1 ? 'Its' : 'Their'} growth will slow under your shade until you lean in the other direction.</p>` : '';
+    showModal('Shade Cast', `<p>You bend your growing crown toward the ${neighborName}, casting a broad shadow across its leaves while your roots exploit the contested soil.</p>${released}<p>While this arrangement lasts, you gain <strong>+${outcome.sunlightPerTurn} sunlight</strong> and <strong>+${outcome.nutrientsPerTurn} nutrient every turn</strong>, and the ${neighborName} grows more slowly${outcome.alreadyContested ? '.' : ', but the act hardens the relationship into open rivalry.'}</p>${offspringWarning}`, onDone);
+    return;
+  }
+
+  if (decision.kind === 'aggression:dominion') {
+    const { sunlight, water, nutrients } = outcome.gains;
+    showModal('Root Dominion', `<p>Your roots seize the contested soil beneath the ${neighborName}. You choke its access to water, nutrients, and light, and steal some of that strength for yourself.</p><p>You gain <strong>${sunlight} sunlight</strong>, <strong>${water} water</strong>, and <strong>${nutrients} nutrient</strong>${nutrients !== 1 ? 's' : ''}${outcome.alreadyContested ? '' : '. Starting this fight costs you the easier light you would have gained from an already-weakened rival'}.</p>`, onDone);
+  }
+}
+
+function runDiplomacyDecision(decision, { emptyMessage = null, transaction = null, preferredTargetIndex = null } = {}) {
+  const cancel = () => transaction?.cancel();
+  const complete = () => transaction?.complete();
+  if (!decision.options.length) {
+    if (emptyMessage) showFeedback(emptyMessage, 'warning');
+    cancel();
+    return { deferred: true };
+  }
+
+  const execute = (option) => {
+    if (option.meta?.blockedReason === 'too-short') {
+      const neighbor = state.neighbors[option.targetIndex];
+      showModal('Not Tall Enough', `<p>The ${neighbor?.species || 'neighboring tree'} is not shorter than you. Lasting shade requires your crown to rise above its crown.</p><p><strong>Grow Taller</strong>, then try again.</p>`, cancel);
+      return;
+    }
+    const proceed = () => {
+      transaction?.commit();
+      const resolved = resolveDiplomacyDecision(state, decision, option.id, {
+        getRelationshipState,
+        getAdjustedRelationshipDelta,
+        getNeighborStage,
+        recordDamage,
+        random: Math.random,
+      });
+      showResolvedDiplomacyDecision(decision, resolved, complete);
+    };
+
+    if (option.requiresConfirmation && option.confirmation) {
+      showChoiceModal(option.confirmation.title, option.confirmation.body, [
+        { label: option.meta?.shadedOffspringCount ? 'Yes, cast the shade' : 'Yes, turn this relationship hostile', className: 'btn warning', onChoose: () => proceed() },
+        { label: 'No, keep the peace', className: 'btn', onChoose: cancel },
+      ]);
+      return;
+    }
+
+    proceed();
+  };
+
+  if (preferredTargetIndex != null) {
+    const preferred = decision.options.find(option => option.targetIndex === preferredTargetIndex);
+    if (preferred) {
+      execute(preferred);
+      return { deferred: true };
+    }
+  }
+
+  if (decision.options.length === 1 && !decision.options[0].disabled) {
+    execute(decision.options[0]);
+    return { deferred: true };
+  }
+
+  chooseNeighborModal(
+    (neighbor) => {
+      const option = decision.options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
+      if (!option) return cancel();
+      execute(option);
+    },
+    n => decision.options.some(option => option.targetIndex === state.neighbors.indexOf(n)),
+    decision.title,
+    decision.body,
+    true,
+    cancel,
+    neighbor => {
+      const option = decision.options.find(entry => entry.targetIndex === state.neighbors.indexOf(neighbor));
+      return option ? { label: option.label, description: option.description, group: option.group, groupDescription: option.groupDescription, groupOrder: option.groupOrder, species: option.meta?.species || neighbor.species, disabled: option.disabled } : null;
+    },
+  );
+  return { deferred: true };
+}
+
+function offerAidToAlly(s, context = {}) {
+  return runDiplomacyDecision(buildAidDecision(state, {
+    getRelationshipState,
+    paidCost: context.scaledCost,
+  }), {
+    emptyMessage: 'No allied trees are available to receive aid',
+    transaction: context.transaction,
+    preferredTargetIndex: context.preferredTargetIndex,
+  });
+}
+
+function runAggressionFlow(kind, context = {}) {
+  return runDiplomacyDecision(buildAggressionDecision(state, kind, { getRelationshipState, getNeighborStage }), {
+    transaction: context.transaction,
+    preferredTargetIndex: context.preferredTargetIndex,
+  });
+}
+
+function shadeRivalAction(s, context) {
+  return runAggressionFlow('shade', context);
+}
+
+function rootDominionAction(s, context) {
+  return runAggressionFlow('dominion', context);
+}
+
+function requestHelpFromAllies(s, context = {}) {
+  const missingHealth = Math.max(0, state.maxHealth - state.health);
+  showChoiceModal('What do you need?', '<p>Choose what your tissues need most. The ally will decide how much it can spare.</p>', [
+    { label: missingHealth >= 2 ? 'Health' : 'Health — need at least 2 missing', description: missingHealth >= 2 ? 'Ask for at least 2 health through the fungal network.' : 'You are too close to full health to receive aid worth more than its cost.', disabled: missingHealth < 2, onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'health' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
+    { label: 'Water', description: 'Ask for water drawn from the ally’s root zone.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'water' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
+    { label: 'Nutrients', description: 'Ask for mineral support carried through fungal threads.', onChoose: () => runDiplomacyDecision(buildHelpRequestDecision(state, { getRelationshipState, getNeighborStage, requestKind: 'nutrients' }), { emptyMessage: 'No allies are close enough to help', transaction: context.transaction, preferredTargetIndex: context.preferredTargetIndex }) },
+    { label: 'Back', onChoose: () => context.transaction?.cancel({ silent: true }) },
+  ]);
+  return { deferred: true };
+}
+
+function nurtureOffspringAction(s, context = {}) {
+  const children = describeOffspring(state, LIFE_STAGES);
+  if (!children.length) {
+    context.transaction?.cancel();
+    return { deferred: true };
+  }
+  const nurtureChild = child => {
+    const before = { ...child };
+    context.transaction?.commit();
+    const nurtured = nurtureOffspring(state, child.id);
+    if (!nurtured) {
+      context.transaction?.cancel();
+      return;
+    }
+    const afterStage = getNeighborStage(nurtured.stageScore);
+    showModal('Offspring Nurtured', `
+      <p>You direct water, nutrients, and stored energy to your ${nurtured.species} offspring.</p>
+      <p><strong>Growth:</strong> ${before.stageScore} → ${nurtured.stageScore} (+${nurtured.stageScore - before.stageScore}) · ${afterStage.name}</p>
+      <p><strong>Health:</strong> ${before.health}/${before.maxHealth} → ${nurtured.health}/${nurtured.maxHealth}</p>
+      <p><strong>Nurture investments:</strong> ${before.nurtureCount} → ${nurtured.nurtureCount}</p>
+    `, () => context.transaction?.complete());
+  };
+  const preferredChild = context.preferredChildId ? children.find(child => child.id === context.preferredChildId) : null;
+  if (preferredChild) {
+    nurtureChild(preferredChild);
+    return { deferred: true };
+  }
+  const choices = children.map(child => ({
+    label: `${child.species} — ${child.stageName}`,
+    description: `${child.groveSide === 'left' ? 'Left' : 'Right'} side · ${child.health}/${child.maxHealth} health · ${child.stageScore} growth · nurtured ${child.nurtureCount} time${child.nurtureCount === 1 ? '' : 's'}`,
+    onChoose: () => nurtureChild(child),
+  }));
+  choices.push({ label: 'Back', onChoose: () => context.transaction?.cancel() });
+  showChoiceModal(
+    'Choose an Offspring Tree',
+    '<p>Compare each child’s current health, growth, life stage, and past nurture before choosing where to invest.</p>',
+    choices,
+  );
+  return { deferred: true };
+}
+
+function attemptConnection(s, context = {}) {
+  return runDiplomacyDecision(buildConnectionDecision(state, { getRelationshipState, getNeighborStage }), {
+    transaction: context.transaction,
+    preferredTargetIndex: context.preferredTargetIndex,
+  });
+}
+
+function getNeighborTree(idx) {
+  if (idx === 2) return null;
+  const base = state.neighbors.find(n => n.slot === idx) || null;
+  if (!base) return null;
+  const stage = getNeighborStage(base.dead ? (base.deathStageScore ?? base.stageScore) : base.stageScore);
+  const isSeed = stage.name === 'Seed';
+  return {
+    species: base.species,
+    age: Math.max(0.25, stage.threshold / 2000),
+    health: base.health,
+    maxHealth: base.maxHealth,
+    healthRatio: base.maxHealth > 0 ? base.health / base.maxHealth : 0,
+    branches: isSeed ? 0 : Math.max(1, Math.min(5, Math.floor(stage.threshold / 300) + 1)),
+    roots: isSeed ? 0 : Math.max(2, Math.min(6, Math.floor(stage.threshold / 300) + 2)),
+    trunk: isSeed ? 0 : Math.max(1, Math.min(4, Math.floor(stage.threshold / 700) + 1)),
+    heightGrowth: base.heightGrowth || 0,
+    ally: getRelationshipState(base.relation).name === 'Ally',
+    relation: base.relation,
+    relationName: getRelationshipState(base.relation).name,
+    stageName: stage.name,
+    targetIndex: state.neighbors.indexOf(base),
+    slot: base.slot,
+    playerShading: Boolean(base.playerShading),
+    shadingPlayer: Boolean(base.shadingPlayer),
+    dead: Boolean(base.dead),
+    deathAge: base.deathAge || 0,
+    deathCause: base.deathCause || null,
+  };
+}
+
+function isActionUnlocked(actionKey) {
+  return isActionUnlockedForState(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
+}
+
+function actionUnlockReason(actionKey) {
+  return getActionUnlockReason(actionKey, state, LIFE_STAGES, PROGRESSIVE_ACTION_UNLOCKS);
+}
+
+function getAffordableActions() {
+  return ACTIONS.filter(action => {
+    if (action.hideAt) {
+      const hideStage = LIFE_STAGES.find(s => s.name === action.hideAt);
+      if (hideStage && computeCurrentLifeStage().rank >= hideStage.rank) return false;
+    }
+    const prereqOk = action.prereq ? action.prereq(state) : true;
+    const affordable = canAfford(getScaledCost(action.baseCost, action.key));
+    const unlocked = isActionUnlocked(action.key);
+    const allowedSeasons = SEASONAL_ACTIONS[action.key];
+    const seasonLocked = allowedSeasons && !allowedSeasons.includes(currentSeason().name);
+    return prereqOk && affordable && unlocked && !seasonLocked;
+  });
+}
+
+function renderActions() {
+  els.actionsList.innerHTML = '';
+
+  const currentStageName = computeCurrentLifeStage().name;
+  const currentStageRank = computeCurrentLifeStage().rank;
+
+  // Group actions by category
+  const categories = { growth: [], defense: [], diplomacy: [], reproduction: [] };
+  const unavailableActions = [];
+  const futureActions = [];
+
+  ACTIONS.forEach(action => {
+    const availability = getActionAvailability({
+      action,
+      state,
+      lifeStages: LIFE_STAGES,
+      currentStageRank,
+      currentSeasonName: currentSeason().name,
+      seasonalActions: SEASONAL_ACTIONS,
+      getScaledCost,
+      canAfford,
+      isActionUnlocked,
+      getUnlockReason: actionUnlockReason,
+    });
+    if (availability.hidden) return;
+
+    const { scaledCost, usable, unlocked, reason } = availability;
+
+    const sunRequired = scaledCost.sunlight || 0;
+    const waterRequired = scaledCost.water || 0;
+    const nutRequired = scaledCost.nutrients || 0;
+    const sunEnough = state.sunlight >= sunRequired;
+    const waterEnough = state.water >= waterRequired;
+    const nutEnough = state.nutrients >= nutRequired;
+    const sunClass = sunEnough ? 'res-sun' : 'res-sun res-low';
+    const waterClass = waterEnough ? 'res-water' : 'res-water res-low';
+    const nutClass = nutEnough ? 'res-nutrient' : 'res-nutrient res-low';
+
+    const resourceCost = (icon, name, required, className) => `
+      <span class="cost ${className}" aria-label="${required} ${name} cost">
+        <span class="cost-icon" aria-hidden="true">${icon}</span>
+        <span class="cost-number"><strong>${required}</strong><small>cost</small></span>
+      </span>`;
+
+    let costsHtml = '<div class="action-costs" aria-label="Action cost">';
+    if (sunRequired > 0) costsHtml += resourceCost('☀️', 'sunlight', sunRequired, sunClass);
+    if (waterRequired > 0) costsHtml += resourceCost('💧', 'water', waterRequired, waterClass);
+    if (nutRequired > 0) costsHtml += resourceCost('🌱', 'nutrients', nutRequired, nutClass);
+    costsHtml += '</div>';
+
+    const actionData = { action, scaledCost, costsHtml, statusText: action.status?.(state) || '', sunRequired, waterRequired, nutRequired };
+
+    if (usable) {
+      if (categories[action.category]) {
+        categories[action.category].push(actionData);
+      }
+    } else if (unlocked) {
+      unavailableActions.push({ ...actionData, reason });
+    } else {
+      futureActions.push({ ...actionData, reason });
+    }
+  });
+
+  const contextTarget = activeSceneTarget();
+  const contextOrderKey = contextualActionOrderKey(contextTarget);
+  const stableKeys = contextualActionOrderByTarget.get(contextOrderKey) || [];
+  const contextualActions = getContextualActions({
+    target: contextTarget,
+    usableActions: Object.values(categories).flat(),
+    state: { ...state, currentSeasonName: currentSeason().name },
+    getRelationshipState,
+    limit: contextTarget?.type === 'player-tree' ? Number.POSITIVE_INFINITY : 3,
+    stableKeys,
+  });
+  const visibleKeys = contextualActions.map(({ action }) => action.key);
+  contextualActionOrderByTarget.set(contextOrderKey, [
+    ...stableKeys,
+    ...visibleKeys.filter(key => !stableKeys.includes(key)),
+  ]);
+
+  renderActionPanels({
+    els,
+    categories,
+    contextualActions,
+    contextTarget,
+    contextPresentation: getTargetActionContext(contextTarget, state, getRelationshipState),
+    unavailableActions,
+    futureActions,
+    actionPoints: state.actions,
+    carouselScrollLeft: contextualActionScrollByTarget.get(contextOrderKey) || 0,
+    onCarouselScroll: scrollLeft => contextualActionScrollByTarget.set(contextOrderKey, scrollLeft),
+    onUseAction: (action, scaledCost) => {
+      engine.executeAction(state, action, scaledCost, {
+        spend,
+        showFeedback,
+        addLog,
+        maybeTriggerActionMilestone,
+        resumeTurnFlow,
+        renderActions,
+        showEventPhase,
+        actionContext: {
+          preferredTargetIndex: contextTarget.type === 'neighbor-tree' ? contextTarget.targetIndex : null,
+          preferredChildId: contextTarget.type === 'offspring-tree' ? contextTarget.childId : null,
+        },
+      });
+    },
+    onSelectPlayer: () => selectSceneTarget(playerSceneTarget()),
+    onFinishTurn: () => {
+      if ((state.turnsElapsed || 0) === 0 && shouldSkipGathering(state)) {
+        state.actions = 0;
+        addLog('You ended the first turn without growing, so no resources were gathered.');
+        showModal('The Seed Waits', '<p><em>Night passes over the soil, but you have not yet opened yourself to it. Without roots or leaves, there is nothing to gather.</em></p><p><strong>Begin growing next turn.</strong> Extend a root to reach water and nutrients; then unfurl leaves to receive sunlight.</p>', () => {
+          state.skipNextUngrownWarning = true;
+          advanceTurn();
+        });
+        return;
+      }
+      showFeedback(getAffordableActions().length ? 'Turn ended early' : 'Turn ended', 'info');
+      showEventPhase();
+    },
+  });
+}
+// Escalating threats: damage increases after year 10
+function getThreatMultiplier() {
+  if (state.year < 10) return 1;
+  return 1 + ((state.year - 10) * 0.1); // +10% per year after 10
+}
+
+// Expanded event pool with real botany/ecology inspiration
+const MAJOR_EVENTS = createMajorEvents({
+  getThreatMultiplier,
+  recordDamage,
+  getDroughtResistance: getDroughtResistanceForState,
+  getRelationshipState,
+  updateNeighborAliveState,
+  updateAlliesCount,
+});
+
+engine = createEngine({
+  SEASONS,
+  computeCurrentLifeStage,
+  getStageProgressIncrement: getStageProgressIncrementForState,
+  rollMajorEvent,
+  rollMinorEvents,
+  resolveSeedFate,
+  updateAlliesCount,
+  growNeighbors,
+  tryAdvanceLifeStage,
+  maybeShowGrowthNudge,
+  maybeShowAllyWarning,
+  showResourcePhase,
+  updateScore,
+  updateUI,
+  render,
+  showModal,
+  presentSeasonChange,
+  processIncidentResponses,
+  maybeShowHealthWarning,
+  deathFlavor,
+  generateSuccessionChoices,
+  continueAsSuccessor,
+  showChoiceModal,
+  renderSpringSeedFateBody,
+  renderGameOverBody,
+  renderSuccessionBody,
+  showGameOverScreen,
+  renderVictoryBody,
+  getRelationshipState,
+  getNeighborStage,
+});
+
+function resolveFruitThreats(events) {
+  return resolveFruitThreatsForState(state, events);
+}
+
+function processSeasonalReproduction(events) {
+  return processSeasonalReproductionForState(state, events, () => currentSeason().name);
+}
+
+function resolveSeedFate(seedCount) {
+  return resolveSeedFateForCount(seedCount);
+}
+
+
+function compareConflictPower(neighbor) {
+  return compareConflictPowerForState(state, neighbor, getNeighborStage);
+}
+
+function queueHostileTreeThreat(neighbor, events) {
+  if (!neighbor || neighbor.dead) return;
+  const decision = buildHostileEncroachmentDecision(state, neighbor, {
+    getRelationshipState,
+    compareConflictPower,
+    getNeighborStage,
+  });
+
+  const prompt = describeDecisionPrompt(decision);
+  if (prompt) events.push({
+    ...prompt,
+    title: decision.title,
+    subject: { type: 'neighbor', species: neighbor.species, slot: neighbor.slot, stageName: getNeighborStage(neighbor).name },
+    response: { kind: 'hostile-encroachment', neighborSlot: neighbor.slot },
+  });
+}
+
+function queueChemicalDefenseThreat(events) {
+  const decision = buildChemicalDefenseDecision(state, {
+    computeCurrentLifeStage,
+  });
+  const hasResponse = decision.options.some(option => option.id === 'defend' || option.id === 'use-permanent-defenses');
+  if (!hasResponse) {
+    events.push(resolveUnanswerableChemicalThreat(state, decision, { recordDamage }));
+    return;
+  }
+  const prompt = describeDecisionPrompt(decision);
+  if (prompt) events.push({
+    ...prompt,
+    kind: 'chemical-threat',
+    state: 'awaiting-response',
+    responseMode: 'immediate',
+    response: { kind: 'chemical-defense', threatKey: decision.meta?.threatKey },
+    deadlineTurn: (state.turnsElapsed || 0) + 1,
+    scenePersistent: true,
+    meta: { threatKey: decision.meta?.threatKey },
+  });
+}
+
+function rollMajorEvent() {
+  return rollMajorEventFromList(MAJOR_EVENTS, currentSeason().name);
+}
+
+function rollMinorEvents() {
+  return rollMinorEventsForState(state, {
+    currentSeasonName: currentSeason().name,
+    getPollinatorChance: getPollinatorChanceForState,
+    species: SPECIES,
+    recordDamage,
+    STAGE_BY_NAME,
+    getRelationshipState,
+    getNeighborStage,
+    random: Math.random,
+    advanceAllyCrises: (events) => advanceAllyCrises(events),
+    advanceOffspringCrises: (events) => advanceChildCrises(events),
+    checkAllyBetrayal: (events) => checkAllyBetrayal(events),
+    queueHostileTreeThreat: (target, events) => queueHostileTreeThreat(target, events),
+    queueChemicalDefenseThreat: (events) => queueChemicalDefenseThreat(events),
+    computeCurrentLifeStage,
+  });
+}
+
+function recordDamage(amount, cause) {
+  return recordDamageForState(state, amount, cause);
+}
+
+function healthWarningBand() {
+  return healthWarningBandForState(state);
+}
+
+function healthWarningContent(level) {
+  return getHealthWarningContent(level);
+}
+
+function maybeShowHealthWarning(onContinue) {
+  const level = healthWarningBand();
+  if (level > state.healthWarningLevel) {
+    state.healthWarningLevel = level;
+    const warning = healthWarningContent(level);
+    showModal(warning.title, `<p><em>${warning.body}</em></p>`, onContinue);
+    return true;
+  }
+  if (level === 0) state.healthWarningLevel = 0;
+  else if (level < state.healthWarningLevel) state.healthWarningLevel = level;
+  return false;
+}
+
+function deathFlavor(cause) {
+  return deathFlavorForCause(cause);
+}
+
+function applyEventEffects(major, minors) {
+  return engine.applyEventEffects(state, major, minors);
+}
+
+function showEventPhase() {
+  setTurnEndBanner('');
+  ensureIncidentState(state);
+  const incidentCountBefore = state.incidents.length;
+  const { major, minors, majorOutcome } = engine.showEventPhase(state);
+  const humanUpdate = state.health > 0 ? advanceHumanSystem(state, {
+    getRelationshipState,
+    getNeighborStage,
+    random: Math.random,
+  }) : {};
+  if (humanUpdate.rumor) {
+    addLog(`Fungal rumor: ${humanUpdate.rumor.body}`);
+  }
+  const majorIncident = openMajorIncident(state, major, majorOutcome);
+  const minorIncidents = minors.map(event => {
+    if (event.existingIncidentId) {
+      const existing = getIncident(state, event.existingIncidentId);
+      if (existing) {
+        existing.summary = event.text || existing.outcome?.summary || existing.summary;
+        existing.effects = event.effects || existing.outcome?.effects || existing.effects;
+        existing.meta.reportPending = false;
+      }
+      return existing;
+    }
+    return openEventIncident(state, event, {
+      kind: event.kind,
+      subject: event.subject,
+      response: event.response,
+      responseMode: event.responseMode,
+      state: event.state,
+      deadlineTurn: event.deadlineTurn,
+      scenePersistent: event.scenePersistent,
+    });
+  }).filter(Boolean);
+  if (major?.name) addLog(`Major event: ${major.name}.`);
+  minors.forEach(event => event?.text && addLog(event.text));
+  if (majorOutcome?.summary) addLog(majorOutcome.summary);
+  majorOutcome?.effects?.forEach(text => text && addLog(text));
+  const directIncidents = state.incidents.slice(incidentCountBefore).filter(incident => incident !== majorIncident && !minorIncidents.includes(incident));
+  const reportedIncidents = state.incidents.filter(incident => incident.meta?.reportPending);
+  reportedIncidents.forEach(incident => { incident.meta.reportPending = false; });
+  const journalIncidents = [...new Map([
+    majorIncident,
+    ...minorIncidents,
+    ...directIncidents,
+    ...reportedIncidents,
+  ].filter(Boolean).map(incident => [incident.id, incident])).values()];
+  const pendingResponses = queuedResponseIncidents(state).length;
+  updateScore();
+  updateUI();
+  render();
+
+  const showNightJournal = () => {
+    showModal('Night Falls', renderEventPhaseBody({ incidents: journalIncidents }), () => {
+      engine.continueAfterEvent(state, {
+        processIncidentResponses,
+        maybeShowHealthWarning,
+        advanceTurn,
+        showTaprootResilience: (onContinue) => {
+          showModal('Deep-root Resilience', '<p>Your deep roots reach moisture far below the drying surface. The drought still hurts, but not as much as it would have.</p>', onContinue);
+        },
+      });
+    }, {
+      record: false,
+      kind: 'night',
+      eyebrow: `${currentSeason().name} · Year ${state.year}`,
+      buttonLabel: pendingResponses ? `Respond to ${pendingResponses} ${pendingResponses === 1 ? 'encounter' : 'encounters'} →` : 'Continue',
+    });
+  };
+
+  if (humanUpdate.rumor) {
+    const ominous = humanUpdate.rumor.presentation === 'ominous';
+    showModal(humanUpdate.rumor.title, renderFungalRumorBody(humanUpdate.rumor), showNightJournal, {
+      record: false,
+      kind: ominous ? 'ominous' : '',
+      eyebrow: 'A Distant Tremor · Fungal network',
+      buttonLabel: 'Continue to Night Falls →',
+    });
+    return;
+  }
+  showNightJournal();
+}
+
+function handleSpringViability(onContinue) {
+  return engine.handleSpringViability(state, (fate, prevSeeds) => {
+    addLog(`${fate.sprouted} of ${prevSeeds} seeds successfully established this spring.`);
+    if (fate.sprouted > 0) addLog(`${fate.sprouted} ${state.selectedSpecies} offspring tree${fate.sprouted !== 1 ? 's' : ''} took root nearby as allies.`);
+    if (fate.sprouted > 0) showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
+    onContinue?.();
+  });
+}
+
+function advanceTurn() {
+  return engine.advanceTurn(state, {
+    onDeath: () => handleDeath(),
+    onAfterSpringViability: (fate, prevSeeds) => {
+      addLog(`${fate.sprouted} of ${prevSeeds} seeds successfully established this spring.`);
+      if (fate.sprouted > 0) addLog(`${fate.sprouted} ${state.selectedSpecies} offspring tree${fate.sprouted !== 1 ? 's' : ''} took root nearby as allies.`);
+      if (fate.sprouted > 0) showFeedback(`${fate.sprouted} offspring sprouted!`, 'success');
+    },
+    onAfterAdvance: () => {},
+  });
+}
+
+function handleDeath() {
+  return engine.handleDeath(state);
+}
+
+function updateScore() {
+  return engine.updateScoreState(state);
+}
+
+function showFeedback(message, type = 'success') {
+  return showFeedbackUI(els, message, type);
+}
+
+function setTurnEndBanner(message = '') {
+  return setTurnEndBannerUI(els, message);
+}
+
+function initTooltips() {
+  return initTooltipsUI(els);
+}
+
+function initCollapsibleGroups() {
+  return initCollapsibleGroupsUI();
+}
+
+function updateUI() {
+  updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
+  return updateHudUI({
+    els,
+    state,
+    currentSeasonName: currentSeason().name,
+    currentStage: computeCurrentLifeStage(),
+    seasons: SEASONS,
+    currentStageRequirements: currentStageRequirements(),
+    affordableActions: getAffordableActions(),
+    offspringStats: describeOffspring(state, LIFE_STAGES),
+    speciesBadgeHtml: state.selectedSpecies
+      ? renderSpeciesSummary(state.selectedSpecies, SPECIES[state.selectedSpecies], {
+          title: state.selectedSpecies,
+          notebook: true,
+        })
+      : '',
+  });
+}
+
+function addLog(message) {
+  state.log.unshift(`[Y${state.year} ${currentSeason().name} T${state.turnInSeason}] ${message}`);
+  state.log = state.log.slice(0, 18);
+}
+
+function render() {
+  if (!els.canvas.isConnected) return;
+  const rect = els.canvas.getBoundingClientRect();
+  const width = Math.max(320, Math.round(rect.width || 900)), height = Math.max(240, Math.round(rect.height || 600));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (els.canvas.width !== Math.round(width*dpr) || els.canvas.height !== Math.round(height*dpr)) {
+    els.canvas.width = Math.round(width*dpr); els.canvas.height = Math.round(height*dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#332f25"; ctx.fillRect(0, 0, width, height);
+  const stage = computeCurrentLifeStage().name;
+  const viewport=sceneViewport();
+  if (state.started&&lastRenderStage !== stage) {
+    cancelSceneCameraAnimation();
+    selectedSceneTarget={id:'player',type:'player-tree',title:state.selectedSpecies||'Your tree',stageName:stage,mapPosition:0};
+    sceneCamera=sceneCameraForTarget(selectedSceneTarget);
+    cameraViewportSignature=sceneViewportSignature(viewport);
+    lastRenderStage=stage;
+  }
+  const rendered = renderForestScene({
+    ctx,
+    canvas: { width, height: viewport.renderHeight, dataset: els.canvas.dataset },
+    immersive: true,
+    frameSelectedSubject: true,
+    isolateFocusedSubject:!comparisonCameraView,
+    viewOffset: { x: comparisonCameraView?.x??sceneCamera.x, y: comparisonCameraView?0:sceneCamera.y },
+    zoomMultiplier: sceneCamera.zoom,
+    worldZoomOverride:comparisonCameraView?.worldZoom??null,
+    groundYOverride:comparisonCameraView?.groundY??null,
+    state,
+    currentSeason: currentSeason(),
+    playerStageName: computeCurrentLifeStage().name,
+    getNeighborTree,
+    getRelationshipState,
+    topInset: viewport.topInset,
+    selectedTargetId: selectedSceneTarget?.id || 'player',
+    growthReveal: currentGrowthReveal(),
+  });
+  sceneHitTargets = rendered?.hitTargets || [];
+  if (selectedSceneTarget && !sceneHitTargets.some(target => target.id === selectedSceneTarget.id)) {
+    cancelSceneCameraAnimation();selectedSceneTarget=playerSceneTarget();sceneCamera=sceneCameraForTarget(selectedSceneTarget);cameraViewportSignature=sceneViewportSignature();render();renderActions();return;
+  }
+  selectedSceneTarget = activeSceneTarget();
+  renderGroveMinimap();
+}
+
+function minimapSpeciesFor(target) {
+  if (target.id === 'player') return state.selectedSpecies;
+  if (target.type === 'neighbor-tree') return state.neighbors?.[target.targetIndex]?.species || target.title;
+  if (target.type === 'offspring-tree') return (state.offspringRecords || []).find(child => child.id === target.childId)?.species || state.selectedSpecies;
+  return null;
+}
+
+function renderGroveMinimap() {
+  if (!els.groveMinimap) return;
+  const targets = sceneHitTargets.filter(target => ['player-tree', 'neighbor-tree', 'offspring-tree'].includes(target.type) && target.stageName !== 'Dead');
+  const signature = targets.map(target => `${target.id}:${target.title}:${target.mapPosition}:${target.id === selectedSceneTarget?.id}`).join('|');
+  if (els.groveMinimap.dataset.signature === signature) return;
+  els.groveMinimap.dataset.signature = signature;
+  els.groveMinimap.replaceChildren(...layoutMinimapTargets(targets).map(({ target, leftPercent }) => {
+    const species = minimapSpeciesFor(target);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `minimap-fruit${target.id === 'player' ? ' player' : ''}${target.id === selectedSceneTarget?.id ? ' selected' : ''}`;
+    button.style.left = `${leftPercent}%`;
+    button.innerHTML = minimapFruitMarkup(species);
+    button.setAttribute('aria-label', `${target.id === 'player' ? 'Your' : target.title} ${target.stageName}; move the view to this tree`);
+    if (target.id === selectedSceneTarget?.id) button.setAttribute('aria-current', 'true');
+    button.onclick = () => selectSceneTarget(sceneHitTargets.find(candidate => candidate.id === target.id));
+    return button;
+  }));
+}
+
+function initSceneInteraction() {
+  els.canvas.addEventListener('click',event=>{
+    const rect=els.canvas.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
+    const target=pickSceneTarget(sceneHitTargets,x,y);
+    if(target){selectSceneTarget(target);return}
+    selectSceneTarget(playerSceneTarget());
+  });
+}
+
+function recoverSceneArtwork() {
+  if (!els.canvas.isConnected || !state.started) return;
+  resetTreeRenderCaches();
+  settleActiveSceneCamera();
+}
+
+const detailSheet = document.getElementById('detail-sheet');
+function openDetailSheet(kind) {
+  detailSheet.dataset.section = kind;
+  document.getElementById('sheet-actions').hidden = kind !== 'actions';
+  document.getElementById('sheet-info').hidden = kind !== 'info';
+  document.getElementById('sheet-title').textContent = kind === 'actions' ? document.getElementById('open-actions').dataset.sheetTitle || 'Future Actions' : 'Grove notebook';
+  if (!detailSheet.open) detailSheet.showModal();
+  detailSheet.querySelector('.sheet-scroll').scrollTop = 0;
+}
+document.getElementById('open-actions').onclick = () => openDetailSheet('actions');
+document.getElementById('open-info').onclick = () => openDetailSheet('info');
+document.getElementById('resource-info').onclick = () => openDetailSheet('info');
+document.getElementById('close-sheet').onclick = () => detailSheet.close();
+detailSheet.addEventListener('close', () => {
+  // Native dialog dismissal can change the mobile viewport or invalidate the
+  // composited canvas without changing the dock dimensions. Always restore
+  // the selected subject after the dialog has left the browser's top layer.
+  requestAnimationFrame(() => {
+    if (!detailSheet.open) recoverSceneArtwork();
+  });
+});
+detailSheet.addEventListener('click', event => { if (event.target === detailSheet) { const r=detailSheet.getBoundingClientRect(); if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom) detailSheet.close(); } });
+els.canvas.addEventListener('contextrestored', () => requestAnimationFrame(recoverSceneArtwork));
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestAnimationFrame(recoverSceneArtwork);
+});
+new ResizeObserver(()=>{if(state.started)scheduleSceneCameraRefit()}).observe(els.hudPanel);
+window.addEventListener('resize',()=>{if(!els.canvas.isConnected)return;if(state.started)scheduleSceneCameraRefit();else render()});
+
+els.startGame.addEventListener('click', startGame);
+initSceneInteraction();
+initSpeciesSelect();
+render();
+loadCanvasAssets(asset=>{
+  if(state.started&&asset?.family==='trees:structure'){
+    const target=activeSceneTarget();
+    if(asset.species!==minimapSpeciesFor(target))return render();
+    if(comparisonCameraView)restartSceneTargetComparison();
+    else if(!comparisonCameraView)refitSceneCamera({animate:Boolean(growthTransition)});
+    else render();
+  }
+  else render();
+});
+
+if(new URLSearchParams(location.search).get('review')==='1'){
+ import('./ui/root-review.js?rev=painted-joins-v1').then(({mountRootReview})=>{
+  const refresh=()=>{
+   cancelSceneCameraAnimation();growthTransition=null;lastGrowthSnapshot=null;
+   contextualActionOrderByTarget.clear();contextualActionScrollByTarget.clear();
+   selectedSceneTarget=null;lastRenderStage=null;
+   document.getElementById('modal').classList.add('hidden');document.getElementById('app').inert=false;
+   render();updateUI();renderActions();settleActiveSceneCamera();
+  };
+  const grant=()=>{Object.assign(state,{actions:50,sunlight:500,water:500,nutrients:500,health:100,maxHealth:100});updateUI();renderActions();};
+  mountRootReview({species:Object.keys(SPECIES),stages:LIFE_STAGES,read:()=>state,grant,
+   apply:({species,rank,season,roots,depth})=>{
+    state.selectedSpecies=species;if(!state.started)startGame();
+    Object.assign(state,{lifeStage:LIFE_STAGES[rank],turnsInStage:rank>=3?8:0,rootZones:rank?Math.max(roots,depth):0,taprootDepth:rank>=3?depth:0,leafClusters:rank?rank+2:0,branches:Math.max(0,rank-1),trunk:Math.max(1,rank),heightGrowth:0,canopySpread:0,visualGrowth:null,seasonIndex:season,gameOver:false});
+    grant();refresh();
+   },
+   advance:()=>{
+    Object.assign(state,{turnsInStage:Math.max(state.turnsInStage,48),firstRootActionTaken:true,majorEventsSurvivedInStage:2,hasProducedFruit:true,allies:Math.max(1,state.allies),branches:Math.max(2,state.branches),rootZones:Math.max(2,state.rootZones),leafClusters:Math.max(2,state.leafClusters)});
+    tryAdvanceLifeStage(()=>{refresh();});renderActions();
+   }
+  });
+ });
+}

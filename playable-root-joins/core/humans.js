@@ -1,0 +1,532 @@
+import { createDecision, findDecisionOption } from './decisions.js';
+import { getPlayerShadeTarget, offspringGrowthFromLight } from './growth.js?rev=offspring-shade-v1';
+import { findActiveIncident, migrateLegacyIncidentState, openIncident, resolveIncident } from './incidents.js?rev=structured-event-outcomes-v1';
+
+export const HUMAN_RUMORS = [
+  {
+    title: 'A Distant Tremor',
+    body: 'A faint warning travels through the fungal dark. Far away, an old tree feels repeated blows against its trunk.',
+    minRank: 2,
+    presentation: 'ominous',
+  },
+  {
+    title: 'The Signal Falters',
+    body: 'The distant tree speaks only in broken pulses now. Around it, familiar root-signals are disappearing one by one.',
+    minRank: 2,
+    presentation: 'ominous',
+  },
+  {
+    title: 'Silence in the Network',
+    body: 'The old tree is gone. Where its roots once answered, the fungal network carries only a cold and empty silence.',
+    minRank: 3,
+    presentation: 'ominous',
+  },
+  {
+    title: 'A Pattern of Loss',
+    body: 'Other forests whisper of the same destruction. Humans are seeking the largest trunks and leaving broken ground behind them.',
+    minRank: 4,
+    presentation: 'ominous',
+  },
+  {
+    title: 'The Cutting Draws Nearer',
+    body: 'The missing forests are no longer impossibly distant. Each season, the edge of the silence feels closer.',
+    minRank: 5,
+    presentation: 'ominous',
+  },
+  {
+    title: 'The Largest Trees',
+    body: 'A grim rumor spreads: forests holding the greatest trees are being marked first. Their wood has drawn human attention.',
+    minRank: 5,
+    presentation: 'ominous',
+  },
+  {
+    title: 'A Grove Left Standing',
+    body: 'Then comes a different story. Humans spared one grove larger than all the rest—a thriving community of ancient trees and their descendants, protected together as a living ecosystem.',
+    minRank: 5,
+  },
+];
+
+export function ensureHumanState(state) {
+  migrateLegacyIncidentState(state);
+  state.offspringRecords ||= [];
+  state.alliedNeighbors ??= 0;
+  state.humanPressure ??= 0;
+  state.humanAttention ??= 0;
+  state.humanCooldown ??= 0;
+  state.cuttingProgress ??= 0;
+  state.thornDefense ??= 0;
+  state.toxicLeaves ??= 0;
+  state.humanStoryTurns ??= 0;
+  state.humanRumorIndex ??= 0;
+  state.lastHumanRumorTurn ??= -99;
+  state.lastPressureYear ??= 0;
+  state.protectionProgress ??= 0;
+  state.protectionEligible ??= false;
+  state.protectionDesignated ??= false;
+  return state;
+}
+
+export function createOffspringRecords(state, count) {
+  ensureHumanState(state);
+  const created = [];
+  for (let i = 0; i < count; i += 1) {
+    const record = {
+      id: `offspring-${state.year}-${state.seasonIndex}-${state.offspringRecords.length + 1}`,
+      species: state.selectedSpecies || 'Plum',
+      stageScore: 100,
+      maxHealth: 8,
+      health: 8,
+      nurtureCount: 0,
+      supportReceived: 0,
+      activeCrises: [],
+      groveSide: state.offspringRecords.length % 2 === 0 ? 'left' : 'right',
+      dead: false,
+    };
+    state.offspringRecords.push(record);
+    created.push(record);
+  }
+  syncOffspringCounts(state);
+  return created;
+}
+
+export function syncOffspringCounts(state) {
+  ensureHumanState(state);
+  state.offspringTrees = state.offspringRecords.filter(child => !child.dead).length;
+  return state.offspringTrees;
+}
+
+export function growOffspringRecords(state, random = Math.random) {
+  ensureHumanState(state);
+  const shadeTarget = getPlayerShadeTarget(state);
+  for (const [index, child] of state.offspringRecords.entries()) {
+    if (child.dead) continue;
+    const baseGrowth = 35 + Math.floor(random() * 26);
+    child.stageScore += offspringGrowthFromLight(baseGrowth, child, index, shadeTarget);
+    if (child.health < child.maxHealth && random() < 0.16) child.health += 1;
+  }
+  syncOffspringCounts(state);
+}
+
+export function nurtureOffspring(state, childId = null) {
+  ensureHumanState(state);
+  const candidates = state.offspringRecords
+    .filter(child => !child.dead)
+    .sort((a, b) => a.nurtureCount - b.nurtureCount || a.stageScore - b.stageScore);
+  const child = childId
+    ? candidates.find(candidate => candidate.id === childId)
+    : candidates[0];
+  if (!child) return null;
+  child.nurtureCount += 1;
+  child.stageScore += 300;
+  child.maxHealth += 1;
+  child.health = Math.min(child.maxHealth, child.health + 2);
+  return child;
+}
+
+export function describeOffspring(state, lifeStages) {
+  ensureHumanState(state);
+  return state.offspringRecords
+    .filter(child => !child.dead)
+    .map(child => {
+      const stage = [...lifeStages].reverse().find(candidate => child.stageScore >= candidate.threshold) || lifeStages[0];
+      const nextStage = lifeStages.find(candidate => candidate.rank === stage.rank + 1) || null;
+      return {
+        id: child.id,
+        species: child.species,
+        groveSide: child.groveSide,
+        stageName: stage.name,
+        stageScore: child.stageScore,
+        nextStageName: nextStage?.name || null,
+        nextStageThreshold: nextStage?.threshold || null,
+        health: child.health,
+        maxHealth: child.maxHealth,
+        nurtureCount: child.nurtureCount || 0,
+        supportReceived: child.supportReceived || 0,
+      };
+    });
+}
+
+const OFFSPRING_CRISIS_TEMPLATES = [
+  { kind: 'nutrients', title: 'Aphid pressure', amount: 7, healthLoss: 2, flavors: [
+    child => `${child.species} offspring sends a faint distress signal: aphids are draining its newest leaves.`,
+    child => `${child.species} offspring is still struggling with aphids. Its young growth is weakening.`,
+    child => `${child.species} offspring is close to collapse under the infestation.`,
+  ] },
+  { kind: 'water', title: 'Dry roots', amount: 6, healthLoss: 2, flavors: [
+    child => `${child.species} offspring asks through the fungal network for water; its shallow roots have found dry soil.`,
+    child => `${child.species} offspring is still thirsty. Its leaves are beginning to droop.`,
+    child => `${child.species} offspring is close to collapse from drought.`,
+  ] },
+  { kind: 'nutrients', title: 'Blight recovery', amount: 9, healthLoss: 3, flavors: [
+    child => `${child.species} offspring asks for rich reserves after walling off a patch of blight.`,
+    child => `${child.species} offspring is still spending its reserves against blight.`,
+    child => `${child.species} offspring can barely contain the blight now.`,
+  ] },
+];
+
+export function createOffspringCrisis(state, child, random = Math.random) {
+  ensureHumanState(state);
+  state.nextOffspringCrisisId = (state.nextOffspringCrisisId || 0) + 1;
+  const template = OFFSPRING_CRISIS_TEMPLATES[Math.min(
+    OFFSPRING_CRISIS_TEMPLATES.length - 1,
+    Math.floor(random() * OFFSPRING_CRISIS_TEMPLATES.length),
+  )];
+  const crisis = {
+    kind: template.kind,
+    title: template.title,
+    amount: template.amount,
+    healthLoss: template.healthLoss,
+    flavors: template.flavors.map(flavor => flavor(child)),
+    stage: 0,
+    id: `offspring-crisis-${state.nextOffspringCrisisId}`,
+  };
+  child.activeCrises ||= [];
+  child.activeCrises.push(crisis);
+  return crisis;
+}
+
+export function advanceOffspringCrises(state, random = Math.random) {
+  ensureHumanState(state);
+  const results = [];
+  const livingChildren = state.offspringRecords.filter(child => !child.dead);
+  const hasActiveCrisis = livingChildren.some(child => (child.activeCrises || []).length > 0);
+  if (!hasActiveCrisis && livingChildren.length > 0 && random() < 0.18) {
+    const target = livingChildren[Math.min(livingChildren.length - 1, Math.floor(random() * livingChildren.length))];
+    createOffspringCrisis(state, target, random);
+  }
+  for (const child of livingChildren) {
+    child.activeCrises ||= [];
+    for (const crisis of [...child.activeCrises]) {
+      const flavor = crisis.flavors[Math.min(crisis.stage, crisis.flavors.length - 1)];
+      crisis.stage += 1;
+      child.health = Math.max(0, child.health - crisis.healthLoss);
+      if (child.health <= 0) {
+        child.dead = true;
+        results.push({ child, crisis, flavor, died: true });
+      } else {
+        results.push({ child, crisis, flavor, died: false });
+      }
+    }
+  }
+  syncOffspringCounts(state);
+  return results;
+}
+
+export function resolveOffspringCrisisAid(state, childId, crisisId, { withhold = false } = {}) {
+  ensureHumanState(state);
+  const child = state.offspringRecords.find(candidate => candidate.id === childId && !candidate.dead);
+  const crisis = child?.activeCrises?.find(candidate => candidate.id === crisisId);
+  if (!child || !crisis) return null;
+
+  if (withhold) {
+    crisis.amount += 2;
+    return { child, crisis, given: 0, resolved: false, withheld: true };
+  }
+
+  const given = Math.min(crisis.amount, Math.max(0, state[crisis.kind] || 0));
+  state[crisis.kind] -= given;
+  child.supportReceived = (child.supportReceived || 0) + (given > 0 ? 1 : 0);
+  if (given >= crisis.amount) {
+    child.health = Math.min(child.maxHealth, child.health + crisis.healthLoss + 2);
+    child.activeCrises = child.activeCrises.filter(candidate => candidate.id !== crisis.id);
+    return { child, crisis, given, resolved: true, withheld: false };
+  }
+  if (given > 0) {
+    child.health = Math.min(child.maxHealth, child.health + 1);
+    crisis.amount = Math.max(1, crisis.amount - given);
+  } else {
+    crisis.amount += 2;
+  }
+  return { child, crisis, given, resolved: false, withheld: false };
+}
+
+export function getProtectedCompanions(state, { getRelationshipState, getNeighborStage }) {
+  ensureHumanState(state);
+  const supportedAllies = state.neighbors
+    .map((neighbor, index) => ({ neighbor, index }))
+    .filter(({ neighbor }) => !neighbor.dead)
+    .filter(({ neighbor }) => getRelationshipState(neighbor.relation).name === 'Ally')
+    .filter(({ neighbor }) => getNeighborStage(neighbor.stageScore).rank >= 5)
+    .filter(({ neighbor }) => (neighbor.helpGivenToThem || 0) >= 2)
+    .filter(({ neighbor }) => getNeighborStage(neighbor.firstAidStageScore ?? neighbor.stageScore).rank < 5 || (neighbor.growthAidReceived || 0) >= 4)
+    .filter(({ neighbor }) => neighbor.health >= Math.ceil(neighbor.maxHealth * 0.5))
+    .map(({ neighbor, index }) => ({ kind: 'ally', id: `neighbor-${index}`, tree: neighbor }));
+
+  const supportedChildren = state.offspringRecords
+    .filter(child => !child.dead)
+    .filter(child => getNeighborStage(child.stageScore).rank >= 5)
+    .filter(child => child.nurtureCount >= 2)
+    .filter(child => child.health >= Math.ceil(child.maxHealth * 0.5))
+    .map(child => ({ kind: 'offspring', id: child.id, tree: child }));
+
+  return [...supportedAllies, ...supportedChildren];
+}
+
+export function updateProtectionProgress(state, deps) {
+  const companions = getProtectedCompanions(state, deps);
+  state.protectionProgress = Math.min(2, companions.length);
+  state.protectionEligible = state.lifeStage?.name === 'Ancient'
+    && state.protectionProgress >= 2
+    && state.humanRumorIndex >= HUMAN_RUMORS.length;
+  return { companions, eligible: state.protectionEligible };
+}
+
+export function woodAttraction(state) {
+  const rank = state.lifeStage?.rank || 0;
+  if (rank < 4) return 0;
+  return Math.max(0, (rank - 3) * 2 + (state.trunk || 0) + Math.floor((state.branches || 0) / 2) + Math.floor((state.canopySpread || 0) / 2));
+}
+
+export function buildConservationDecision(state, deps) {
+  const { companions } = updateProtectionProgress(state, deps);
+  const names = companions.slice(0, 2).map(entry => entry.kind === 'offspring'
+    ? `${entry.tree.species} offspring`
+    : `${entry.tree.species} ally`);
+  return createDecision({
+    kind: 'conservation-inspection',
+    title: 'Visitors in the Grove',
+    body: `<p>Humans arrive again, but these carry notebooks and measuring tapes instead of saws.</p><p>They study you and the two great trees you helped flourish: <strong>${names.join(' and ')}</strong>.</p>`,
+    options: [{ id: 'receive-inspection', label: 'Let them witness the living grove' }],
+  });
+}
+
+function getHumanEncounterIncident(state) {
+  return findActiveIncident(state, 'human-encounter', incident => ['awaiting-response', 'ongoing'].includes(incident.state));
+}
+
+function clearHumanEncounter(state, outcome = {}) {
+  const incident = getHumanEncounterIncident(state);
+  if (incident) resolveIncident(state, incident.id, outcome);
+}
+
+export function buildHumanEncounterDecision(state, suppliedEncounter = null) {
+  ensureHumanState(state);
+  const encounter = suppliedEncounter || getHumanEncounterIncident(state)?.meta?.encounter;
+  if (!encounter) return null;
+  const options = [];
+  if (state.branches > 0) {
+    options.push({
+      id: 'drop-branch',
+      label: 'Drop a branch nearby (lose 1 branch and up to 2 leaf clusters)',
+      preview: 'A forceful immediate defense that drives the humans away.',
+    });
+  }
+  if (state.allies > 0) {
+    options.push({
+      id: 'call-network',
+      label: state.nutrients >= 2 ? 'Draw support through the fungal network (2 nutrients)' : 'Draw support through the fungal network — need 2 nutrients',
+      affordable: state.nutrients >= 2,
+      preview: 'Allied roots share water and minerals while fungal signals prime sticky resin and irritating defensive chemistry.',
+    });
+  }
+  const thornCost = { water: 2, nutrients: 3 };
+  const oilCost = { sunlight: 3, nutrients: 2 };
+  const canGrowThorns = state.water >= thornCost.water && state.nutrients >= thornCost.nutrients;
+  const canReleaseOils = state.sunlight >= oilCost.sunlight && state.nutrients >= oilCost.nutrients;
+  options.push({
+    id: 'emergency-thorns',
+    label: canGrowThorns ? 'Grow emergency thorns (2 water, 3 nutrients)' : 'Grow emergency thorns — need 2 water and 3 nutrients',
+    affordable: canGrowThorns,
+    preview: 'A lasting thorn level and a strong immediate deterrent.',
+    meta: { cost: thornCost },
+  });
+  options.push({
+    id: 'irritating-oils',
+    label: canReleaseOils ? 'Release irritating leaf oils (3 sunlight, 2 nutrients)' : 'Release irritating leaf oils — need 3 sunlight and 2 nutrients',
+    affordable: canReleaseOils,
+    preview: 'The strongest immediate deterrent, but its effect is temporary.',
+    meta: { cost: oilCost },
+  });
+  if (!canGrowThorns && !canReleaseOils && !options.some(option => option.affordable !== false)) {
+    options.push({ id: 'endure-cutting', label: 'Endure without defending yourself', preview: 'No resource cost, but the humans face almost no resistance.' });
+  }
+  return createDecision({
+    kind: 'human-encounter',
+    title: encounter.phase === 'survey' ? 'Humans at Your Trunk' : 'The Cutters Return',
+    body: encounter.phase === 'survey'
+      ? '<p>Humans circle your trunk, measuring your girth and studying the shape of your wood. One raises a bright marking brush.</p>'
+      : `<p>${encounter.count} humans return with cutting tools. Old marks on your trunk guide them back to you.</p><p><strong>Cutting damage:</strong> ${state.cuttingProgress}/3</p>`,
+    options,
+    meta: { encounter },
+  });
+}
+
+function failEncounter(state, encounter) {
+  if (encounter.phase === 'survey') {
+    state.humanAttention += 1;
+    state.humanCooldown = 4;
+    clearHumanEncounter(state, { title: 'The Tree Is Marked', summary: 'The humans leave a bright mark and intend to return.' });
+    return {
+      title: 'The Tree Is Marked',
+      body: '<p>The humans paint a bright mark low on your trunk. They leave for now, but the fungal network carries an uneasy certainty: they intend to return.</p><p class="threat-status threat-growing">The danger is drawing closer.</p>',
+    };
+  }
+
+  const damage = 2 + Math.floor(state.humanPressure / 3);
+  state.health = Math.max(0, state.health - damage);
+  state.trunk = Math.max(1, state.trunk - 1);
+  state.cuttingProgress += 1;
+  state.humanAttention += 1;
+  state.humanCooldown = 3;
+  clearHumanEncounter(state, { title: 'A Deep Cut', summary: `The humans cut deeply before leaving. Cutting damage: ${state.cuttingProgress}/3.` });
+  if (state.cuttingProgress >= 3) {
+    state.health = 0;
+    state.lastDamageCause = 'logging';
+    return {
+      title: 'Felled',
+      body: '<p>The final cuts pass through your remaining wood. Your crown falls, and your root-signals break into silence.</p><p>The cutting ends only when the tree is gone.</p>',
+      fatal: true,
+    };
+  }
+  return {
+    title: 'A Deep Cut',
+    body: `<p>The humans carve deeply into your trunk before leaving. You lose <strong>${damage} health</strong> and one level of trunk growth.</p><p><strong>Cutting damage:</strong> ${state.cuttingProgress}/3</p><p class="threat-status threat-growing">They have withdrawn, but they mean to return.</p>`,
+  };
+}
+
+export function resolveHumanDecision(state, decision, optionId, deps = {}) {
+  const { random = Math.random } = deps;
+  const option = findDecisionOption(decision, optionId);
+  if (!option) return { title: 'The Moment Passes', body: '<p>No response was chosen.</p>' };
+
+  if (decision.kind === 'conservation-inspection') {
+    state.protectionDesignated = true;
+    state.protectionEligible = true;
+    state.victoryAchieved = true;
+    clearHumanEncounter(state, { title: 'A Protected Ecosystem', summary: 'The grove receives lasting protection.' });
+    return {
+      title: 'A Protected Ecosystem',
+      body: '<p>The visitors recognize that this is not merely valuable timber, but a rare community of great trees supporting one another across generations.</p><p>Boundaries are drawn around the grove. Cutting is forbidden. Your ecosystem will be allowed to endure.</p><p class="threat-status threat-solved">The axes will not return.</p>',
+      victory: true,
+    };
+  }
+
+  const encounter = getHumanEncounterIncident(state)?.meta?.encounter || decision.meta?.encounter;
+  if (!encounter) return { title: 'The Humans Have Gone', body: '<p>The grove is quiet again.</p>' };
+
+  if (option.id === 'drop-branch' && state.branches > 0) {
+    state.branches -= 1;
+    state.leafClusters = Math.max(0, state.leafClusters - 2);
+    state.humanAttention = Math.max(0, state.humanAttention - 1);
+    state.humanCooldown = 6;
+    clearHumanEncounter(state, { title: 'Branchfall', summary: 'The humans flee after a heavy branch crashes beside them.' });
+    return {
+      title: 'Branchfall',
+      body: '<p>You release a heavy branch. It crashes into the ground beside the humans, who abandon their tools and flee.</p><p>You lose <strong>1 branch</strong> and up to <strong>2 leaf clusters</strong>.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
+      repelled: true,
+    };
+  }
+
+  let defensePower = state.thornDefense * 2 + state.toxicLeaves * 2 + Math.min(2, state.defense || 0);
+  if (option.id === 'call-network' && state.nutrients >= 2 && state.allies > 0) {
+    state.nutrients -= 2;
+    defensePower += 3 + Math.min(3, state.allies);
+  }
+  if (option.id === 'emergency-thorns') {
+    if (state.water < 2 || state.nutrients < 3) return failEncounter(state, encounter);
+    state.water -= 2;
+    state.nutrients -= 3;
+    state.thornDefense += 1;
+    defensePower += 4;
+  }
+  if (option.id === 'irritating-oils') {
+    if (state.sunlight < 3 || state.nutrients < 2) return failEncounter(state, encounter);
+    state.sunlight -= 3;
+    state.nutrients -= 2;
+    defensePower += 5;
+  }
+  if (option.id === 'endure-cutting') defensePower = 0;
+
+  const difficulty = encounter.phase === 'survey'
+    ? 2 + state.humanPressure * 0.45
+    : 5 + state.humanPressure * 0.7 + state.humanAttention * 0.35;
+  const successChance = Math.max(0.08, Math.min(0.9, 0.38 + defensePower * 0.08 - difficulty * 0.035));
+  if (random() < successChance) {
+    state.humanAttention = Math.max(0, state.humanAttention - 1);
+    state.humanCooldown = 5;
+    clearHumanEncounter(state, { title: 'The Humans Retreat', summary: 'The humans abandon the grove.' });
+    return {
+      title: 'The Humans Retreat',
+      body: option.id === 'call-network'
+        ? '<p>Signals pass through your fungal partners. Allied roots share water and minerals while your wounded bark floods with sticky resin and irritating defensive compounds. The humans’ tools gum up, their skin begins to sting, and they abandon the cutting.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
+        : option.id === 'emergency-thorns'
+          ? '<p>New thorns harden along your lowest growth. The humans recoil from the spikes and abandon their work.</p><p>The thorn growth remains as a permanent defense.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
+          : option.id === 'irritating-oils'
+            ? '<p>You flood your leaves and bark with irritating oils. Burning skin and itching eyes drive the humans out of the grove.</p><p class="threat-status threat-solved">The grove is safe for now.</p>'
+            : '<p>The humans reconsider the difficult ground and leave the grove untouched.</p><p class="threat-status threat-solved">The grove is safe for now.</p>',
+      repelled: true,
+    };
+  }
+  return failEncounter(state, encounter);
+}
+
+export function advanceHumanSystem(state, deps = {}) {
+  const {
+    getRelationshipState,
+    getNeighborStage,
+    random = Math.random,
+  } = deps;
+  ensureHumanState(state);
+  state.humanStoryTurns += 1;
+  if (state.humanCooldown > 0) state.humanCooldown -= 1;
+
+  if (state.protectionDesignated) return {};
+
+  const activeHumanIncident = getHumanEncounterIncident(state);
+  if (activeHumanIncident) {
+    return { decision: buildHumanEncounterDecision(state, activeHumanIncident.meta?.encounter), incidentId: activeHumanIncident.id };
+  }
+
+  const protection = updateProtectionProgress(state, { getRelationshipState, getNeighborStage });
+  if (protection.eligible && !state.victoryAchieved) {
+    const incident = openIncident(state, {
+      kind: 'conservation-inspection', title: 'Visitors in the Grove',
+      summary: 'Human visitors arrive with notebooks and measuring tapes to study the living grove.',
+      artwork: 'human-surveyor', severity: 'good',
+      response: { kind: 'conservation-inspection' },
+    });
+    return { decision: buildConservationDecision(state, { getRelationshipState, getNeighborStage }), incidentId: incident.id, incident };
+  }
+
+  const nextRumor = HUMAN_RUMORS[state.humanRumorIndex];
+  if (nextRumor
+    && state.lifeStage?.rank >= nextRumor.minRank
+    && state.humanStoryTurns - state.lastHumanRumorTurn >= 6) {
+    state.humanRumorIndex += 1;
+    state.lastHumanRumorTurn = state.humanStoryTurns;
+    return { rumor: nextRumor };
+  }
+
+  if (state.lifeStage?.rank >= 4 && state.year > state.lastPressureYear) {
+    state.humanPressure = Math.min(8, state.humanPressure + 1);
+    state.lastPressureYear = state.year;
+  }
+
+  const attraction = woodAttraction(state);
+  if (attraction <= 0 || state.humanCooldown > 0) return {};
+  const baseChance = state.lifeStage.rank === 4 ? 0.025 : state.lifeStage.rank === 5 ? 0.065 : 0.1;
+  const chance = Math.min(0.28, baseChance + attraction * 0.004 + state.humanPressure * 0.012);
+  if (random() >= chance) return {};
+
+  const phase = state.humanAttention > 0 || state.cuttingProgress > 0 ? 'cutting' : 'survey';
+  const encounter = {
+    phase,
+    count: phase === 'survey' ? 2 : Math.min(5, 2 + Math.floor((state.humanPressure + state.humanAttention) / 3)),
+  };
+  const incident = openIncident(state, {
+    kind: 'human-encounter',
+    title: phase === 'survey' ? 'Humans at Your Trunk' : 'The Cutters Return',
+    summary: phase === 'survey'
+      ? 'Humans have entered the grove and are measuring your trunk. Their interest is growing.'
+      : 'The marked humans have returned with cutting tools and wait beside your trunk.',
+    artwork: phase === 'survey' ? 'human-surveyor' : 'human-logger',
+    severity: 'warning',
+    response: { kind: 'human-encounter' },
+    meta: { encounter },
+  });
+  return {
+    incident,
+    decision: buildHumanEncounterDecision(state, encounter),
+    incidentId: incident.id,
+  };
+}

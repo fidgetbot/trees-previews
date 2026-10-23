@@ -1,5 +1,11 @@
 # Trees previews
 
+## Playable painted-root integration
+
+`playable-root-joins/` is a separate full-game build exported from `fidgetbot/trees` branch `painted-join-integration`, source commit `5467a49`. It integrates the 24 approved patches into the actual game renderer after Cherry-first lifecycle and visual review, then applies the same treatment to Plum, Apricot, Peach, Pear and Citrus. Seed through Seedling retain existing artwork and mechanics. The ordinary Seed opening remains playable; `?review=1` adds clearly labeled specimen controls, resource refill and milestone-assisted real stage advancement.
+
+The runtime removes the study's brown matte, omits original painted-root fragments below the collar, and uses the source collar for trunk, foliage and root placement. Root IDs and canonical paths persist across woody stages; the network scales with the growing trunk, rather than remaining fixed in world coordinates. Root/depth counters remain authoritative and JSON-compatible; this does not add a save UI. Each asset is an exact copy of its approved patch, with hashes and source provenance beside the runtime images. A bounded root-layer cache prevents repeated camera measurements from consuming the growth-animation duration. Production `/trees/` is untouched. The separate gallery remains available as the artwork reference.
+
 Separate static review site, independent of the Trees game repository and deployment.
 
 ## Painted roots

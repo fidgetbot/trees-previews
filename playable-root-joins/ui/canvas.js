@@ -1,0 +1,1284 @@
+import {drawRootGrowth,rootGrowthAmount,rootGrowthBounds,rootExtensionFamily,resetRootGrowthCache} from './root-growth.js?rev=botanical-roots-v4';
+import {getJoinProfile,drawJoinedRootTree,joinedRootBounds,resetJoinedRootCaches} from './painted-root-joins.js?rev=painted-joins-v1';
+import { drawAttachedPests, PEST_KINDS } from './pest-attachments.js?rev=artwork-recovery-v1';
+import { ANIMAL_ASSET_URLS, INSECT_ASSET_URLS, getAnimalScenePlacement, getFaunaSceneSize } from './fauna-art.js?rev=event-portraits-v1';
+import { resetPaintedGrowthCaches, preparePaintedGrowth, drawGrowthSprites, drawGrowthWood, drawGrowthLeaves } from './painted-growth.js?rev=botanical-roots-v1';
+import { resetJuvenileLayers, JUVENILE_KEYS, getJuvenileStageKey, getJuvenileGeometry, getJuvenileLayers, drawJuvenilePlant, drawJuvenileLeaves } from './juvenile-growth.js?rev=artwork-recovery-v1';
+import { getPlayerShadeTarget, offspringGroveSide, offspringSharesShadeDirection } from '../core/growth.js?rev=offspring-shade-v1';
+import { findActiveIncident, incidentSceneArtKinds } from '../core/incidents.js?rev=structured-event-outcomes-v1';
+
+// Decoded PNGs remain authoritative. Canvas-derived layers can be discarded
+// independently by the browser; a camera refit alone cannot repair them.
+export function resetTreeRenderCaches() {
+  resetJuvenileLayers();
+  resetRootGrowthCache();
+  resetJoinedRootCaches();
+  resetPaintedGrowthCaches();
+}
+
+const TAU = Math.PI * 2;
+const STAGE_SCALE = { Seed:.12, Sprout:.22, Seedling:.32, Sapling:.5, 'Young Tree':.82, 'Mature Tree':1.45, Ancient:1.75 };
+const CAMERA_ZOOM = { Seed:10, Sprout:5.8, Seedling:3, Sapling:1.75, 'Young Tree':1.18, 'Mature Tree':.86, Ancient:.74 };
+const STAGE_ART_PROFILES = Object.freeze({
+  Seedling:Object.freeze({silhouette:'single-leader',trunkBaseWidth:3.2,foliageScale:3,foliageMultiplier:1,terminalTaper:.32}),
+  Sapling:Object.freeze({silhouette:'open-scaffold',trunkBaseWidth:6.2,foliageScale:3.55,foliageMultiplier:.75,terminalTaper:.34}),
+  'Young Tree':Object.freeze({silhouette:'developing-crown',trunkBaseWidth:8.2,foliageScale:4.8,foliageMultiplier:1,terminalTaper:.3}),
+  'Mature Tree':Object.freeze({silhouette:'rounded-crown',trunkBaseWidth:10,foliageScale:5.75,foliageMultiplier:1.12,terminalTaper:.27}),
+  Ancient:Object.freeze({silhouette:'broad-crown',trunkBaseWidth:12.5,foliageScale:6.15,foliageMultiplier:1.25,terminalTaper:.24}),
+});
+export const RESIDENT_WORLD_POSITIONS = Object.freeze([-180,-70,0,72,180]);
+const WORLD_POSITIONS = RESIDENT_WORLD_POSITIONS;
+const CHILD_WORLD_POSITIONS = [-84,88,-252,255];
+const HABITS = {
+  Plum:{spread:1.12,height:.96,bend:.58,bark:'#695740'}, Peach:{spread:1.22,height:.88,bend:.68,bark:'#735443'},
+  Apricot:{spread:1.08,height:.94,bend:.6,bark:'#70553f'}, Pear:{spread:.82,height:1.12,bend:.42,bark:'#625441'},
+  Citrus:{spread:.96,height:.88,bend:.48,bark:'#65513a'}, Cherry:{spread:1.18,height:.92,bend:.62,bark:'#684b45'},
+};
+const SEED_PALETTES = {
+  Plum:['#d2a064','#7b4930','#4a2e25'], Peach:['#d9aa72','#925d3d','#55362a'], Apricot:['#d7a163','#8b5235','#513126'],
+  Pear:['#c6a16a','#806044','#4a382d'], Cherry:['#c18b5d','#70452f','#452c24'], Citrus:['#ead49a','#ac8755','#675035'],
+};
+const BOTANICAL_ASSET_REVISION='fruiting-botanical-library-v1';
+const TREE_STRUCTURE_ASSET_REVISION='painted-life-stages-v1';
+const TREE_GROWTH_ASSET_REVISION='continuous-roots-v2';
+const ROOT_EXTENSION_ASSET_REVISION='stage-matched-roots-v1';
+const GROUND_ASSET_REVISION='painted-snow-v1';
+const HEDGE_ASSET_REVISION='seasonal-hedges-v2';
+const TREE_REMAINS_ASSET_REVISION='painted-tree-remains-v1';
+const WINTER_SNOW_TILE_URL=new URL(`../assets/ground/winter-snow-tile-v1.png?rev=${GROUND_ASSET_REVISION}`,import.meta.url).href;
+const HEDGE_ASSET_URLS=Object.freeze(Object.fromEntries(['Spring','Summer','Autumn','Winter'].map(season=>[
+  season,
+  new URL(`../assets/hedges/${season.toLowerCase()}-hedge-tile-v2.png?rev=${HEDGE_ASSET_REVISION}`,import.meta.url).href,
+])));
+const DEAD_TREE_STUMP_URL=new URL(`../assets/trees/remains/dead-fruit-tree-stump-v1.png?rev=${TREE_REMAINS_ASSET_REVISION}`,import.meta.url).href;
+const HUMAN_ASSET_REVISION='logger-sprites-v1';
+const SURVEYOR_ASSET_URLS=Object.freeze([
+  new URL(`../assets/humans/surveyor-v1.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
+  new URL(`../assets/humans/surveyor-v2.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
+]);
+const LOGGER_ASSET_URLS=Object.freeze([
+  new URL(`../assets/humans/logger-v1-axe.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
+  new URL(`../assets/humans/logger-v2-bow-saw.png?rev=${HUMAN_ASSET_REVISION}`,import.meta.url).href,
+]);
+const TREE_STRUCTURE_SPECIES=Object.freeze(['Plum','Peach','Apricot','Pear','Cherry','Citrus']);
+const TREE_STRUCTURE_STAGE_KEYS=Object.freeze(['seed','rooted-seed','sprout','seedling','sapling','young-tree','mature-tree','ancient']);
+const TREE_STRUCTURE_GEOMETRY=Object.freeze({
+  seed:Object.freeze({width:24,height:31,groundRatio:.84}),
+  'rooted-seed':Object.freeze({width:26,height:58,groundRatio:.35}),
+  sprout:Object.freeze({width:34,height:58,groundRatio:.57}),
+  seedling:Object.freeze({width:45,height:64,groundRatio:.56}),
+  sapling:Object.freeze({width:66,height:82,groundRatio:.59}),
+  'young-tree':Object.freeze({width:94,height:105,groundRatio:.61}),
+  'mature-tree':Object.freeze({width:142,height:122,groundRatio:.63}),
+  ancient:Object.freeze({width:174,height:136,groundRatio:.65}),
+});
+// Seed cells from the source atlas extend into the next row. Sample only the
+// complete seed and its 12px margin; preserve the original painted masters.
+const SEED_SOURCE_BOUNDS=Object.freeze({
+  Apricot:{width:214,height:278}, Cherry:{width:186,height:196},
+  Citrus:{width:237,height:185}, Peach:{width:228,height:300},
+  Pear:{width:122,height:175}, Plum:{width:328,height:225},
+});
+const ROOTED_SEED_SOURCE_BOUNDS=Object.freeze({
+  Apricot:{width:203,height:375,imageHeight:455}, Cherry:{width:189,height:313,imageHeight:440},
+  Citrus:{width:256,height:322,imageHeight:434}, Peach:{width:226,height:387,imageHeight:454},
+  Pear:{width:118,height:359,imageHeight:499}, Plum:{width:336,height:293,imageHeight:428},
+});
+export const LEAFLESS_SPROUT_OCCUPANCY_RATIO=26/34;
+export function getTreeStructureSourceRect(species,stageKey){
+  const bounds=stageKey==='seed'?SEED_SOURCE_BOUNDS[species]:stageKey==='rooted-seed'?ROOTED_SEED_SOURCE_BOUNDS[species]:null;
+  return bounds?{x:0,y:0,...bounds}:null;
+}
+const TREE_STRUCTURE_ASSET_URLS=Object.freeze(Object.fromEntries(TREE_STRUCTURE_SPECIES.flatMap(species=>{
+  const slug=species.toLowerCase();
+  return [...TREE_STRUCTURE_STAGE_KEYS,...JUVENILE_KEYS].map(stageKey=>[
+    `${species}:${stageKey}`,
+    new URL(`../assets/trees/${JUVENILE_KEYS.includes(stageKey)?'juvenile/':''}${slug}-${stageKey}-v1.png?rev=${TREE_STRUCTURE_ASSET_REVISION}`,import.meta.url).href,
+  ]);
+})));
+const TREE_GROWTH_ASSET_KEYS=Object.freeze(['shoot','root-radicle','root-forked','root-fan']);
+const ROOT_EXTENSION_ASSET_URLS=Object.freeze({
+  juvenile:new URL(`../assets/trees/growth/root-extension-juvenile-v2.png?rev=${ROOT_EXTENSION_ASSET_REVISION}`,import.meta.url).href,
+  woody:new URL(`../assets/trees/growth/root-extension-woody-v2.png?rev=${ROOT_EXTENSION_ASSET_REVISION}`,import.meta.url).href,
+});
+const TREE_GROWTH_ASSET_URLS=Object.freeze(Object.fromEntries(TREE_STRUCTURE_SPECIES.flatMap(species=>{
+  const slug=species.toLowerCase();
+  return TREE_GROWTH_ASSET_KEYS.map(assetKey=>[
+    `${species}:${assetKey}`,
+    new URL(`../assets/trees/growth/${slug}-${assetKey}-v1.png?rev=${TREE_GROWTH_ASSET_REVISION}`,import.meta.url).href,
+  ]);
+})));
+const BOTANICAL_ASSET_URLS=Object.freeze({
+  'Citrus:foliage':Object.freeze([
+    new URL('../assets/botanical/citrus-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-foliage-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-foliage-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-foliage-v4.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Citrus:blossoms':Object.freeze([
+    new URL('../assets/botanical/citrus-blossoms-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-blossoms-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-blossoms-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Citrus:fruit':Object.freeze([
+    new URL('../assets/botanical/citrus-fruit-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-fruit-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/citrus-fruit-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Cherry:foliage':Object.freeze([
+    new URL('../assets/botanical/cherry-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-foliage-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-foliage-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-foliage-v4.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Cherry:blossoms':Object.freeze([
+    new URL('../assets/botanical/cherry-blossoms-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-blossoms-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-blossoms-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Cherry:fruit':Object.freeze([
+    new URL('../assets/botanical/cherry-fruit-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-fruit-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/cherry-fruit-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Pear:foliage':Object.freeze([
+    new URL('../assets/botanical/pear-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-foliage-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-foliage-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-foliage-v4.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Pear:blossoms':Object.freeze([
+    new URL('../assets/botanical/pear-blossoms-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-blossoms-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-blossoms-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Pear:fruit':Object.freeze([
+    new URL('../assets/botanical/pear-fruit-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-fruit-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/pear-fruit-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Apricot:foliage':Object.freeze([
+    new URL('../assets/botanical/apricot-foliage-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-foliage-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-foliage-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-foliage-v4.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Apricot:blossoms':Object.freeze([
+    new URL('../assets/botanical/apricot-blossoms-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-blossoms-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-blossoms-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Apricot:fruit':Object.freeze([
+    new URL('../assets/botanical/apricot-fruit-v1.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-fruit-v2.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+    new URL('../assets/botanical/apricot-fruit-v3.png?rev=fruiting-botanical-library-v1',import.meta.url).href,
+  ]),
+  'Peach:foliage':Object.freeze([
+    new URL(`../assets/botanical/peach-foliage-v1.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-foliage-v2.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-foliage-v3.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-foliage-v4.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+  ]),
+  'Peach:blossoms':Object.freeze([
+    new URL(`../assets/botanical/peach-blossoms-v1.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-blossoms-v2.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-blossoms-v3.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+  ]),
+  'Peach:fruit':Object.freeze([
+    new URL(`../assets/botanical/peach-fruit-v1.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-fruit-v2.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+    new URL(`../assets/botanical/peach-fruit-v3.png?rev=fruiting-botanical-library-v1`,import.meta.url).href,
+  ]),
+  'Plum:foliage':Object.freeze([
+    new URL(`../assets/botanical/plum-foliage-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-foliage-variant-2.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-foliage-variant-3.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-foliage-variant-4.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+  ]),
+  'Plum:blossoms':Object.freeze([
+    new URL(`../assets/botanical/plum-blossoms-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-blossoms-variant-2.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-blossoms-variant-3.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+  ]),
+  'Plum:fruit':Object.freeze([
+    new URL(`../assets/botanical/plum-fruit-airy.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-fruit-variant-2.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+    new URL(`../assets/botanical/plum-fruit-variant-3.png?rev=${BOTANICAL_ASSET_REVISION}`,import.meta.url).href,
+  ]),
+});
+const botanicalAssets=new Map();
+let botanicalAssetLoadPromise=null;
+const treeStructureAssets=new Map();
+const treeStructureRequests=new Map();
+const treeStructureFailures=new Map();
+const TREE_STRUCTURE_RETRY_DELAYS=Object.freeze([180]);
+const treeGrowthAssets=new Map();
+const treeGrowthRequests=new Map();
+const treeGrowthFailures=new Set();
+let canvasAssetLoadListener=null;
+const surveyorAssets=new Map();
+let surveyorAssetLoadPromise=null;
+const loggerAssets=new Map();
+let loggerAssetLoadPromise=null;
+const animalAssets=new Map();
+let animalAssetLoadPromise=null;
+const insectAssets=new Map();
+let insectAssetLoadPromise=null;
+let winterSnowAsset=null;
+let winterSnowAssetLoadPromise=null;
+const hedgeAssets=new Map();
+let hedgeAssetLoadPromise=null;
+let deadTreeStumpAsset=null;
+let deadTreeStumpAssetLoadPromise=null;
+let mirroredSnowTile=null;
+const winterSnowSurfaceLayers=new Map();
+
+export function loadBotanicalAssets(onAssetLoad){
+  if(botanicalAssetLoadPromise)return botanicalAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  const assets=Object.entries(BOTANICAL_ASSET_URLS).flatMap(([family,urls])=>urls.map((url,index)=>({family,index,url})));
+  botanicalAssetLoadPromise=Promise.all(assets.map(({family,index,url})=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{botanicalAssets.set(`${family}:${index}`,image);onAssetLoad?.({family,index,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return botanicalAssetLoadPromise;
+}
+
+export function loadSurveyorAssets(onAssetLoad){
+  if(surveyorAssetLoadPromise)return surveyorAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  surveyorAssetLoadPromise=Promise.all(SURVEYOR_ASSET_URLS.map((url,index)=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{surveyorAssets.set(index,image);onAssetLoad?.({family:'humans:surveyors',index,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return surveyorAssetLoadPromise;
+}
+
+export function loadLoggerAssets(onAssetLoad){
+  if(loggerAssetLoadPromise)return loggerAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  loggerAssetLoadPromise=Promise.all(LOGGER_ASSET_URLS.map((url,index)=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{loggerAssets.set(index,image);onAssetLoad?.({family:'humans:loggers',index,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return loggerAssetLoadPromise;
+}
+
+export function loadAnimalAssets(onAssetLoad){
+  if(animalAssetLoadPromise)return animalAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  animalAssetLoadPromise=Promise.all(Object.entries(ANIMAL_ASSET_URLS).map(([kind,url])=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{animalAssets.set(kind,image);onAssetLoad?.({family:'animals',kind,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return animalAssetLoadPromise;
+}
+
+export function loadInsectAssets(onAssetLoad){
+  if(insectAssetLoadPromise)return insectAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  insectAssetLoadPromise=Promise.all(Object.entries(INSECT_ASSET_URLS).map(([kind,url])=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{insectAssets.set(kind,image);onAssetLoad?.({family:'insects',kind,url});resolve(true)};
+    image.onerror=()=>resolve(false);
+    image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return insectAssetLoadPromise;
+}
+
+export function loadWinterGroundAsset(onAssetLoad){
+  if(winterSnowAssetLoadPromise)return winterSnowAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  winterSnowAssetLoadPromise=new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{winterSnowAsset=image;mirroredSnowTile=null;winterSnowSurfaceLayers.clear();onAssetLoad?.({family:'ground:winter',url:WINTER_SNOW_TILE_URL});resolve(true)};
+    image.onerror=()=>resolve(false);image.src=WINTER_SNOW_TILE_URL;
+  });
+  return winterSnowAssetLoadPromise;
+}
+
+export function loadHedgeAssets(onAssetLoad){
+  if(hedgeAssetLoadPromise)return hedgeAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  hedgeAssetLoadPromise=Promise.all(Object.entries(HEDGE_ASSET_URLS).map(([season,url])=>new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{hedgeAssets.set(season,image);onAssetLoad?.({family:'ground:hedges',season,url});resolve(true)};
+    image.onerror=()=>resolve(false);image.src=url;
+  }))).then(results=>results.some(Boolean));
+  return hedgeAssetLoadPromise;
+}
+
+export function loadTreeRemainsAsset(onAssetLoad){
+  if(deadTreeStumpAssetLoadPromise)return deadTreeStumpAssetLoadPromise;
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  deadTreeStumpAssetLoadPromise=new Promise(resolve=>{
+    const image=new Image();image.decoding='async';
+    image.onload=()=>{deadTreeStumpAsset=image;onAssetLoad?.({family:'trees:remains',url:DEAD_TREE_STUMP_URL});resolve(true)};
+    image.onerror=()=>resolve(false);image.src=DEAD_TREE_STUMP_URL;
+  });
+  return deadTreeStumpAssetLoadPromise;
+}
+
+export function loadCanvasAssets(onAssetLoad){
+  canvasAssetLoadListener=onAssetLoad||canvasAssetLoadListener;
+  return Promise.all([loadBotanicalAssets(onAssetLoad),loadSurveyorAssets(onAssetLoad),loadLoggerAssets(onAssetLoad),loadAnimalAssets(onAssetLoad),loadInsectAssets(onAssetLoad),loadWinterGroundAsset(onAssetLoad),loadHedgeAssets(onAssetLoad),loadTreeRemainsAsset(onAssetLoad)]).then(results=>results.some(Boolean));
+}
+
+export function getTreeStructureStageKey(stage,{rootedSeed=false}={}){
+  if(rootedSeed)return'rooted-seed';
+  return String(stage||'seed').toLowerCase().replaceAll(' ','-');
+}
+
+export function getTreeStructureFallbackKeys(stageKey){
+  // The first root changes the requested painting before the rooted-seed PNG
+  // is guaranteed to have decoded. Keep the already-visible seed in place
+  // during that handoff instead of briefly erasing the player from the grove.
+  return stageKey==='rooted-seed'?['rooted-seed','seed']:[stageKey];
+}
+
+export function getTreeStructureAssetUrl(species,stageKey){
+  return TREE_STRUCTURE_ASSET_URLS[`${species}:${stageKey}`]||null;
+}
+
+export function getTreeGrowthAssetUrl(species,assetKey){
+  if(assetKey.startsWith('join-'))return new URL(`../assets/trees/joins/${species.toLowerCase()}-${assetKey.slice(5)}.png?rev=painted-joins-v1`,import.meta.url).href;
+  if(assetKey.startsWith('root-extension-'))return ROOT_EXTENSION_ASSET_URLS[assetKey.slice('root-extension-'.length)]||null;
+  return TREE_GROWTH_ASSET_URLS[`${species}:${assetKey}`]||null;
+}
+
+export function getTreeStructureGeometry(stageKey,state={}){
+  if(JUVENILE_KEYS.includes(stageKey))return getJuvenileGeometry(state.selectedSpecies,stageKey,state);
+  const base=TREE_STRUCTURE_GEOMETRY[stageKey]||TREE_STRUCTURE_GEOMETRY.sapling;
+  const seedBounds=getTreeStructureSourceRect(state.selectedSpecies,stageKey);
+  if(seedBounds){
+    const unscaledHeight=base.width*seedBounds.height/seedBounds.width;
+    const sproutReference=stageKey==='rooted-seed'&&state.presentationStage==='Sprout'
+      ?getJuvenileGeometry(state.selectedSpecies,'unfurling',state)
+      :null;
+    // Rooted-seed paintings vary widely in their intrinsic proportions. Fit
+    // the leafless Sprout to one shared fraction of that species' established
+    // Sprout specimen instead of shrinking every species by the same amount.
+    const scale=sproutReference?sproutReference.height*LEAFLESS_SPROUT_OCCUPANCY_RATIO/unscaledHeight:1;
+    return{...base,width:base.width*scale,height:base.width*scale*seedBounds.height/seedBounds.width,groundRatio:stageKey==='seed'?.92:base.groundRatio*seedBounds.imageHeight/seedBounds.height};
+  }
+  if(stageKey==='seed'||stageKey==='rooted-seed')return{...base};
+  const canopyGrowth=Math.min(.22,Math.max(0,state.canopySpread||0)*.035),trunkGrowth=Math.min(.1,Math.max(0,state.trunk||0)*.008),heightGrowth=Math.min(.42,Math.max(0,state.heightGrowth||0)*.075);
+  const profile=getJoinProfile(state.selectedSpecies,state.presentationStage||state.lifeStage?.name||stageKey.split('-').map(s=>s[0].toUpperCase()+s.slice(1)).join(' '));
+  if(profile){const width=base.width*(1+canopyGrowth+trunkGrowth);return {...base,width,height:width*profile.sourceHeight/profile.sourceWidth*(1+heightGrowth),groundRatio:profile.cutY/profile.sourceHeight,anchorX:profile.cx/profile.sourceWidth};}
+  return{...base,width:base.width*(1+canopyGrowth+trunkGrowth),height:base.height*(1+heightGrowth)};
+}
+
+export function requestTreeStructureAsset(species,stageKey,onAssetLoad=null){
+  const key=`${species}:${stageKey}`,url=getTreeStructureAssetUrl(species,stageKey);
+  const failures=treeStructureFailures.get(key)||0;
+  if(!url||typeof Image==='undefined'||failures>TREE_STRUCTURE_RETRY_DELAYS.length)return null;
+  if(treeStructureAssets.has(key))return treeStructureAssets.get(key);
+  if(treeStructureRequests.has(key))return null;
+  const image=new Image();image.decoding='async';treeStructureRequests.set(key,image);
+  image.onload=()=>{treeStructureAssets.set(key,image);treeStructureRequests.delete(key);treeStructureFailures.delete(key);(onAssetLoad||canvasAssetLoadListener)?.({family:'trees:structure',species,stageKey,url})};
+  image.onerror=()=>{
+    treeStructureRequests.delete(key);
+    const nextFailures=(treeStructureFailures.get(key)||0)+1;
+    treeStructureFailures.set(key,nextFailures);
+    const delay=TREE_STRUCTURE_RETRY_DELAYS[nextFailures-1];
+    if(delay!==undefined)setTimeout(()=>requestTreeStructureAsset(species,stageKey,onAssetLoad),delay);
+  };
+  if(failures){const retryUrl=new URL(url);retryUrl.searchParams.set('tree-retry',String(failures));image.src=retryUrl.href}
+  else image.src=url;
+  return null;
+}
+
+export function requestTreeGrowthAsset(species,assetKey,onAssetLoad=null){
+  const key=`${species}:${assetKey}`,url=getTreeGrowthAssetUrl(species,assetKey);
+  if(!url||typeof Image==='undefined'||treeGrowthFailures.has(key))return null;
+  if(treeGrowthAssets.has(key))return treeGrowthAssets.get(key);
+  if(treeGrowthRequests.has(key))return null;
+  const image=new Image();image.decoding='async';treeGrowthRequests.set(key,image);
+  image.onload=()=>{treeGrowthAssets.set(key,image);treeGrowthRequests.delete(key);(onAssetLoad||canvasAssetLoadListener)?.({family:'trees:growth',species,assetKey,url})};
+  image.onerror=()=>{treeGrowthRequests.delete(key);treeGrowthFailures.add(key)};
+  image.src=url;
+  return null;
+}
+
+export function getSceneArtKinds(state){
+  const kinds=incidentSceneArtKinds(state);
+  return [...new Set(kinds.filter(kind=>kind==='browsers'||Object.hasOwn(ANIMAL_ASSET_URLS,kind)||Object.hasOwn(INSECT_ASSET_URLS,kind)))];
+}
+
+export function fitGroundedArtwork(centerX,displayWidth,viewportWidth,margin=12){
+  const width=Math.min(displayWidth,Math.max(24,viewportWidth-margin*2));
+  return{width,centerX};
+}
+
+export function projectSceneWorldX(playerX,worldOffset,worldZoom){
+  return playerX+(Number(worldOffset)||0)*(Number(worldZoom)||1);
+}
+
+export function getSurveyorVariantIndex(placementIndex,variantCount=SURVEYOR_ASSET_URLS.length){
+  if(variantCount<=0)return-1;
+  return Math.abs(placementIndex)%variantCount;
+}
+
+export function getLoggerVariantIndex(placementIndex,variantCount=LOGGER_ASSET_URLS.length){
+  if(variantCount<=0)return-1;
+  return Math.abs(placementIndex)%variantCount;
+}
+
+export function getBotanicalVariantCount(species,kind){return BOTANICAL_ASSET_URLS[`${species}:${kind}`]?.length||0}
+export function getBotanicalVariantIndex(species,kind,treeSeed,placementIndex,variantCount=getBotanicalVariantCount(species,kind)){
+  if(variantCount<=0)return-1;
+  return hash(`${species}:${kind}:${treeSeed}:${placementIndex}`)%variantCount;
+}
+
+export function getBotanicalModuleCount(kind,count,clusterCount){
+  if(count<=0||clusterCount<=0)return 0;
+  if(kind==='foliage')return Math.min(clusterCount,count);
+  if(kind==='blossoms')return Math.min(clusterCount,6,Math.ceil(count/2));
+  if(kind==='fruit')return Math.min(clusterCount,6,Math.ceil(count/4));
+  return 0;
+}
+
+export function getStageArtProfile(stage){
+  return STAGE_ART_PROFILES[stage]||STAGE_ART_PROFILES['Mature Tree'];
+}
+
+export function getJoinedLimbWidth(parentWidth,role='continuation'){
+  const width=Math.max(.55,Number(parentWidth)||0);
+  return width*(role==='continuation'?.94:.64);
+}
+
+export function getDrawableGroveTrees(trees,viewportWidth,{preserveFocused=false}={}){
+  if(preserveFocused)return trees;
+  return trees.filter(tree=>Number.isFinite(tree.x)&&tree.x>=0&&tree.x<=viewportWidth);
+}
+
+export function getWinterSnowSurface(viewportWidth,groundY){
+  const width=Math.max(0,Number(viewportWidth)||0),top=[];
+  for(let x=0;x<width;x+=24)top.push({x,y:groundY-8+Math.sin(x*.035)*2+Math.sin(x*.091+1.7)*.7});
+  top.push({x:width,y:groundY-8+Math.sin(width*.035)*2+Math.sin(width*.091+1.7)*.7});
+  return{top,layerTop:groundY-14,opaqueBottom:groundY+5,fadeBottom:groundY+18};
+}
+
+const HEDGE_WORLD_TILE_SIZE=64;
+const HEDGE_SOURCE_INSET_X=2;
+const HEDGE_SOURCE_BOTTOM=500;
+const HEDGE_SOURCE_WIDTH=512-HEDGE_SOURCE_INSET_X*2;
+const HEDGE_GROUND_BLEED_WORLD=.5;
+export function getSeasonalHedgeLayout(viewportWidth,groundY,worldZoom,viewOffsetX=0){
+  const width=Math.max(0,Number(viewportWidth)||0),zoom=Math.max(.04,Number(worldZoom)||0),tileSize=HEDGE_WORLD_TILE_SIZE*zoom;
+  // Center the player inside a tile, not on a mirrored join. The shift is
+  // especially important at Seed zoom, where one hedge tile fills the view.
+  const anchor=width/2+(Number(viewOffsetX)||0)-tileSize/2;
+  const groundBleed=Math.max(2,HEDGE_GROUND_BLEED_WORLD*zoom),drawHeight=tileSize*(HEDGE_SOURCE_BOTTOM/HEDGE_SOURCE_WIDTH);
+  return{
+    tileSize,
+    top:(Number(groundY)||0)+groundBleed-drawHeight,
+    drawHeight,
+    groundBleed,
+    sourceRect:{x:HEDGE_SOURCE_INSET_X,y:0,width:HEDGE_SOURCE_WIDTH,height:HEDGE_SOURCE_BOTTOM},
+    anchor,
+    firstIndex:Math.floor((0-anchor)/tileSize)-1,
+    lastIndex:Math.ceil((width-anchor)/tileSize)+1,
+  };
+}
+
+export function getSeasonalHedgeTileDraws(layout){
+  const draws=[];
+  for(let index=layout.firstIndex;index<=layout.lastIndex;index+=1){
+    const left=Math.round(layout.anchor+index*layout.tileSize),right=Math.round(layout.anchor+(index+1)*layout.tileSize);
+    draws.push({index,left,right,width:right-left,mirrored:Math.abs(index)%2===1});
+  }
+  return draws;
+}
+
+export function getSceneArtworkScale(viewportWidth){
+  return Math.max(.78,Math.min(1.6,(Number(viewportWidth)||0)/780));
+}
+
+export function getPaintedFoliageModuleCount(stage,leafCount,clusterCount){
+  if(leafCount<=0||clusterCount<=0)return 0;
+  return Math.min(clusterCount,Math.max(1,Math.ceil(leafCount*getStageArtProfile(stage).foliageMultiplier)));
+}
+
+export function getDeadTreePresentation(stage,deathAge=0,{rootZones=0,leafClusters=0}={}){
+  const rootedSeed=shouldDrawSeedRadicle(stage,rootZones,leafClusters);
+  const stageKey=getTreeStructureStageKey(stage,{rootedSeed});
+  if(deathAge<4)return{kind:'snag',stageKey};
+  const geometry=TREE_STRUCTURE_GEOMETRY[stageKey]||TREE_STRUCTURE_GEOMETRY.sapling;
+  const width=Math.max(24,Math.min(84,geometry.width*.68));
+  return{kind:'stump',stageKey,width,height:width*2/3};
+}
+
+function treeHitTarget(tree,state,playerStageName,camera,groundY){
+  const stage=tree.isPlayer?playerStageName:(tree.neighbor?.stageName||'Sapling');
+  const neighbor=tree.neighbor;
+  const visual=tree.isPlayer?state:{...neighbor,selectedSpecies:neighbor?.species,rootZones:neighbor?.roots,leafClusters:neighbor?.leafClusters??neighbor?.branches??2,visualGrowth:null};
+  const leaves=visual.leafClusters||0,roots=visual.rootZones||0,rooted=shouldDrawSeedRadicle(stage,roots,leaves);
+  const juvenile=getJuvenileStageKey(visual,stage);
+  const key=juvenile||getTreeStructureStageKey(stage,{rootedSeed:rooted});
+  const geometry=juvenile?getJuvenileGeometry(visual.selectedSpecies||'Plum',juvenile,visual):getTreeStructureGeometry(key,visual);
+  const trunk=visual.trunk||1,scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom;
+  const amount=tree.isPlayer?rootGrowthAmount({...visual,presentationStage:stage}):0;
+  const growthBounds=joinedRootBounds(geometry,{...visual,presentationStage:stage})||rootGrowthBounds(geometry,amount),spread=growthBounds.width/geometry.width-1,depth=(growthBounds.height/geometry.height-geometry.groundRatio)/(1-geometry.groundRatio);
+  const above=geometry.height*geometry.groundRatio*scale;
+  const below=geometry.height*(1-geometry.groundRatio)*depth*scale;
+  const paintedWidth=geometry.width*(1+spread)*scale;
+  const sidePad=Math.max(6,paintedWidth*.12),topPad=Math.max(4,above*.05),bottomPad=4;
+  const bounds={x:tree.x-paintedWidth/2-sidePad,y:groundY-above-topPad,width:paintedWidth+sidePad*2,height:above+below+topPad+bottomPad};
+  if(tree.isPlayer)return{id:'player',type:'player-tree',title:state.selectedSpecies||'Your tree',stageName:stage,subtitle:`${stage} · You`,mapPosition:tree.worldPosition||0,bounds};
+  if(neighbor?.offspring)return{id:`offspring-${neighbor.childId}`,type:'offspring-tree',childId:neighbor.childId,title:`${neighbor.species} offspring`,stageName:stage,subtitle:`${stage} · Ally`,mapPosition:tree.worldPosition||0,bounds};
+  return{id:`neighbor-${neighbor?.targetIndex??tree.index}`,type:'neighbor-tree',targetIndex:neighbor?.targetIndex,slot:neighbor?.slot,stageName:stage,title:neighbor?.species||'Neighboring tree',subtitle:`${stage} · ${neighbor?.relationName||'Neutral'}`,mapPosition:tree.worldPosition||0,bounds};
+}
+
+export function renderForestScene({ctx,canvas,state,currentSeason,playerStageName,getNeighborTree,getRelationshipState,topInset=0,zoomMultiplier=1,worldZoomOverride=null,groundYOverride=null,centerHorizon=false,selectedTargetId=null,immersive=false,frameSelectedSubject=true,isolateFocusedSubject=true,viewOffset={x:0,y:0},growthReveal=null,measureTargetId=null}) {
+  const w=canvas.width,h=canvas.height;
+  const physicalWidth=canvas.measurementWidth||w,physicalHeight=canvas.measurementHeight||h;
+  const measurementOffset=measureTargetId
+    ?{x:(physicalWidth-w)/2,y:(physicalHeight-h)/2}
+    :{x:0,y:0};
+  if(measureTargetId)ctx.clearRect(0,0,physicalWidth,physicalHeight);
+  ctx.save();
+  if(measureTargetId)ctx.translate(measurementOffset.x,measurementOffset.y);
+  let subjectState=state,subjectStage=playerStageName;
+  if(immersive&&frameSelectedSubject&&selectedTargetId?.startsWith('neighbor-')) {
+    const index=Number(selectedTargetId.slice(9));
+    const neighbor=[0,1,3,4].map(slot=>getNeighborTree(slot)).find(n=>n?.targetIndex===index);
+    if(neighbor){subjectStage=neighbor.stageName;subjectState={...neighbor,selectedSpecies:neighbor.species,rootZones:neighbor.roots,leafClusters:neighbor.leafClusters??neighbor.branches??2};}
+  } else if(immersive&&frameSelectedSubject&&selectedTargetId?.startsWith('offspring-')) {
+    const child=(state.offspringRecords||[]).find(c=>`offspring-${c.id}`===selectedTargetId&&!c.dead);
+    if(child){subjectStage=stageForScore(child.stageScore);subjectState={selectedSpecies:child.species,trunk:2,branches:3,leafClusters:3};}
+  }
+  // Frame by stage, not current root/leaf totals: spending on growth must not
+  // shrink the camera by an equal amount and erase the visible result.
+  const framingState={...subjectState,rootZones:1,leafClusters:subjectStage==='Seed'?0:2,branches:0,trunk:1,canopySpread:0,heightGrowth:0};
+  const camera=cameraFor(framingState,subjectStage);
+  if(immersive){
+    // Sprout uses one camera scale before and after its first leaf.
+    const desired=subjectStage==='Seed'?Math.min(82,w*.20):Math.min(h*.42,w*.65);
+    camera.zoom*=Math.min(5,desired/playerHeight(framingState,subjectStage,camera));
+  }
+  camera.zoom*=zoomMultiplier;
+  if(Number.isFinite(worldZoomOverride)&&worldZoomOverride>0)camera.zoom=worldZoomOverride;
+  const centered=centerHorizon||playerStageName==='Seed',naturalGroundY=immersive?Math.max(topInset+playerHeight(framingState,subjectStage,camera)+16,h*.70):(centered?Math.round(h/2):Math.min(h*.72,Math.ceil(topInset+playerHeight(state,playerStageName,camera)*1.12+16))),groundY=(Number.isFinite(groundYOverride)?groundYOverride:naturalGroundY)+viewOffset.y,positions=WORLD_POSITIONS.map(worldX=>w/2+worldX*camera.zoom+viewOffset.x),residentTrees=positions.map((baseX,index)=>{
+    const neighbor=index===2?null:getNeighborTree(index),arrangement=getCanopyArrangement(state,index,index===2,neighbor);
+    return{x:baseX+arrangement.worldOffset*camera.zoom,index,isPlayer:index===2,neighbor,canopyLean:arrangement.canopyLean,worldPosition:WORLD_POSITIONS[index]+arrangement.worldOffset};
+  });
+  const childTrees=(state.offspringRecords||[]).filter(child=>!child.dead).slice(0,CHILD_WORLD_POSITIONS.length).map((child,index)=>{
+    const stageName=stageForScore(child.stageScore),rank=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'].indexOf(stageName);
+    return{x:w/2+CHILD_WORLD_POSITIONS[index]*camera.zoom+viewOffset.x,index:5+index,isPlayer:false,worldPosition:CHILD_WORLD_POSITIONS[index],neighbor:{species:child.species||state.selectedSpecies||'Plum',stageName,branches:Math.max(1,Math.min(6,rank+1)),roots:Math.max(2,Math.min(7,rank+2)),trunk:Math.max(1,Math.min(5,Math.floor(rank/2)+1)),health:child.health,maxHealth:child.maxHealth,healthRatio:child.maxHealth>0?child.health/child.maxHealth:0,ally:true,offspring:true,offspringIndex:index,groveSide:offspringGroveSide(child,index),relation:100,relationName:'Ally',childId:child.id}};
+  });
+  const trees=[...residentTrees,...childTrees];
+  const focusId=measureTargetId||selectedTargetId;
+  const treeFocus=focusId==='player'||focusId?.startsWith('neighbor-')||focusId?.startsWith('offspring-');
+  // Only tree targets may isolate the grove. Wildlife and people remain
+  // contextual overlays; treating their IDs as tree IDs removes every tree.
+  const isolate=Boolean(treeFocus&&(measureTargetId||(isolateFocusedSubject&&immersive&&focusId!=='player')));
+  const isolatedTrees=isolate?trees.filter(tree=>{
+    if(focusId==='player')return tree.isPlayer;
+    if(focusId.startsWith('neighbor-'))return `neighbor-${tree.neighbor?.targetIndex}`===focusId;
+    if(focusId.startsWith('offspring-'))return `offspring-${tree.neighbor?.childId}`===focusId;
+    return false;
+  }):trees;
+  // Pixel measurement needs the subject's dimensions, not its grove offset.
+  // Center the already-isolated specimen so increasing zoom cannot move it
+  // beyond the padded measuring bitmap and turn a clipped fragment into the
+  // next camera estimate.
+  const focusedTrees=measureTargetId?isolatedTrees.map(tree=>({...tree,x:w/2})):isolatedTrees;
+  // A crown can be much wider than its grove spacing. If its ground anchor is
+  // wholly offscreen, painting it can leave a disconnected branch fragment at
+  // the edge beside an unrelated visible tree.
+  // Once focus has isolated one specimen, never cull it by a stale grove
+  // anchor. Painting it is also what starts/retries its lazy asset request;
+  // culling here could otherwise make an empty focus self-sustaining.
+  const drawableTrees=measureTargetId?focusedTrees:getDrawableGroveTrees(focusedTrees,w,{preserveFocused:Boolean(isolate)});
+  canvas.dataset.groundY=String(groundY);
+  canvas.dataset.worldZoom=String(camera.zoom);
+  ctx.clearRect(0,0,w,h);
+  if(!measureTargetId){
+    ctx.fillStyle=background(ctx,currentSeason);ctx.fillRect(0,0,w,groundY);
+    drawSeasonalHedge(ctx,w,groundY,camera.zoom,viewOffset.x,currentSeason.name);
+    const soil=ctx.createLinearGradient(0,groundY,0,h);soil.addColorStop(0,'#71604a');soil.addColorStop(.18,'#584933');soil.addColorStop(1,'#332f25');
+    ctx.fillStyle=soil;ctx.fillRect(0,groundY,w,h-groundY);ctx.strokeStyle='rgba(84,70,45,.3)';line(ctx,0,groundY,w,groundY);
+    if(currentSeason.name==='Winter')drawWinterWeather(ctx,w,h,groundY);
+    drawDirectionalCanopyShadows(ctx,drawableTrees,groundY);drawNearGround(ctx,w,h,groundY,camera.rank);
+  }
+  const attachedTargets=[];
+  drawableTrees.forEach(tree=>attachedTargets.push(...(drawTree({ctx,...tree,groundY,state,season:currentSeason.name,playerStageName,getRelationshipState,camera,growthReveal})||[])));
+  const drawableTreeSet=new Set(drawableTrees);
+  const hitTargets=trees.filter(tree=>tree.isPlayer||tree.neighbor).map(tree=>({...treeHitTarget(tree,state,playerStageName,camera,groundY),sceneVisible:drawableTreeSet.has(tree)}));
+  if(!measureTargetId){
+    drawSceneArt(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,playerStageName,hitTargets,w);
+    hitTargets.push(...attachedTargets);drawHumanPressure(ctx,trees.find(tree=>tree.isPlayer)?.x||w/2,groundY,camera,state,hitTargets,w);
+    // Keep relationship geometry in grove coordinates even when specimen art
+    // is isolated after focusing. The clipped dotted path then persists under
+    // an ally or any tree between the player and that ally.
+    if(cameraFor(state,playerStageName).rank>=2)drawFungalNetwork(ctx,trees,groundY,getRelationshipState);
+  }
+  const labelRows=[];
+  drawableTrees.filter(tree=>!immersive&&(tree.isPlayer||tree.neighbor)&&tree.x>24&&tree.x<w-24).forEach(tree=>drawLabel(ctx,tree.x,groundY,tree.isPlayer,tree.neighbor,state,playerStageName,getRelationshipState,labelRows));
+  let measuredBounds=null;
+  if(measureTargetId&&ctx.getImageData){
+    const pixels=ctx.getImageData(0,0,physicalWidth,physicalHeight).data;
+    let left=physicalWidth,top=physicalHeight,right=-1,bottom=-1;
+    for(let y=0;y<physicalHeight;y++)for(let x=0;x<physicalWidth;x++)if(pixels[(y*physicalWidth+x)*4+3]>16){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y)}
+    if(right>=left){
+      const pad=0;
+      measuredBounds={
+        x:left-pad-measurementOffset.x+(isolatedTrees[0]?.x??w/2)-w/2,
+        y:top-pad-measurementOffset.y,
+        width:right-left+1+pad*2,
+        height:bottom-top+1+pad*2,
+      };
+    }
+  }
+  ctx.restore();
+  return{hitTargets,groundY,worldZoom:camera.zoom,measuredBounds};
+}
+
+function drawSceneArt(ctx,x,groundY,camera,state,playerStageName,hitTargets,viewportWidth){
+  const kinds=getSceneArtKinds(state);
+  if(!kinds.length)return;
+  // Fauna are readable scene markers. Size them for the viewport, not the
+  // focused tree's camera, so switching life stages cannot make them pulse.
+  const scale=getSceneArtworkScale(viewportWidth);
+  const drawGrounded=(kind,displayWidth,title)=>{
+    const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
+    let centerX=projectSceneWorldX(x,getAnimalScenePlacement(kind).worldOffset,camera.zoom);
+    ({width:displayWidth,centerX}=fitGroundedArtwork(centerX,displayWidth,viewportWidth));
+    const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
+    const contactY=getAnimalScenePlacement(kind).contactY??.94;
+    const top=groundY-displayHeight*contactY;ctx.drawImage(image,centerX-displayWidth/2,top,displayWidth,displayHeight);
+    hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,anchor:{type:'ground',x:centerX,y:groundY},bounds:{x:centerX-displayWidth/2-8,y:top-8,width:displayWidth+16,height:displayHeight+16}});
+  };
+  const drawFloating=(kind,centerX,centerY,displayWidth,title)=>{
+    const image=animalAssets.get(kind)||insectAssets.get(kind);if(!image)return;
+    const displayHeight=displayWidth*image.naturalHeight/image.naturalWidth;
+    const left=centerX-displayWidth/2,top=centerY-displayHeight/2;
+    ctx.drawImage(image,left,top,displayWidth,displayHeight);
+    const padding=Math.max(8,(36-Math.min(displayWidth,displayHeight))/2);
+    hitTargets.push({id:`wildlife-${kind}`,type:'wildlife',kind,title,bounds:{x:left-padding,y:top-padding,width:displayWidth+padding*2,height:displayHeight+padding*2}});
+  };
+  ctx.save();
+  kinds.filter(kind=>!PEST_KINDS.includes(kind)).forEach(kind=>{
+    if(kind==='woodpecker'){
+      const image=animalAssets.get(kind);if(!image)return;
+      const displayHeight=getFaunaSceneSize(kind).height*scale,displayWidth=displayHeight*2/3;
+      const treeHeight=playerHeight(state,playerStageName,camera);
+      const centerY=groundY-Math.max(48*scale,Math.min(treeHeight*.56,142*scale));
+      const contactX=getAnimalScenePlacement(kind).contactX??.27;
+      const left=x-displayWidth*contactX,top=centerY-displayHeight*.48;ctx.drawImage(image,left,top,displayWidth,displayHeight);
+      hitTargets.push({id:'wildlife-woodpecker',type:'wildlife',kind:'woodpecker',title:'Woodpecker',anchor:{type:'trunk',x,y:centerY},bounds:{x:left-10,y:top-10,width:displayWidth+20,height:displayHeight+20}});
+      return;
+    }
+    if(kind==='beaver'){
+      drawGrounded(kind,getFaunaSceneSize(kind).width*scale,'Beaver');
+      return;
+    }
+    if(kind==='browsers'){
+      drawGrounded('browser-deer',getFaunaSceneSize('browser-deer').width*scale,'Browsing deer');
+      drawGrounded('browser-rabbit',getFaunaSceneSize('browser-rabbit').width*scale,'Browsing rabbit');
+      return;
+    }
+    if(kind==='fruit-robin'){drawGrounded(kind,getFaunaSceneSize(kind).width*scale,'Fruit-visiting robin');return}
+    if(kind==='fruit-squirrel'){drawGrounded(kind,getFaunaSceneSize(kind).width*scale,'Fruit-visiting squirrel');return}
+    const treeHeight=playerHeight(state,playerStageName,camera);
+    const canopyY=groundY-Math.max(68*scale,Math.min(treeHeight*.72,190*scale));
+    if(kind.startsWith('pollinator-')){
+      const titles={
+        'pollinator-bumblebee':'Bumblebee','pollinator-honeybee':'Honeybee','pollinator-mason-bee':'Mason bee',
+        'pollinator-hoverfly':'Hoverfly','pollinator-butterfly':'Butterfly','pollinator-beetle':'Pollinating beetle',
+      };
+      drawFloating(kind,x+48*scale,canopyY,getFaunaSceneSize(kind).width*scale,titles[kind]||'Pollinator');
+    }
+  });
+  ctx.restore();
+}
+
+function stageForScore(score){
+  if(score>=10200)return'Ancient';if(score>=3300)return'Mature Tree';if(score>=1000)return'Young Tree';if(score>=600)return'Sapling';if(score>=300)return'Seedling';if(score>=100)return'Sprout';return'Seed';
+}
+
+function drawHumanPressure(ctx,x,groundY,camera,state,hitTargets,viewportWidth){
+  const cuts=state.cuttingProgress||0,encounter=findActiveIncident(state,'human-encounter',incident=>['awaiting-response','ongoing'].includes(incident.state))?.meta?.encounter;
+  if((state.humanAttention||0)>0){
+    const markScale=Math.max(.7,camera.zoom);ctx.save();ctx.fillStyle='rgba(223,109,63,.92)';ctx.beginPath();ctx.roundRect(x-5*markScale,groundY-15*markScale,10*markScale,3.2*markScale,1.4*markScale);ctx.fill();ctx.restore();
+  }
+  if(cuts>0){
+    ctx.save();ctx.strokeStyle='rgba(205,112,62,.9)';ctx.lineWidth=Math.max(2,2.4*camera.zoom);ctx.lineCap='round';
+    for(let i=0;i<cuts;i++){const y=groundY-(9+i*5)*camera.zoom;ctx.beginPath();ctx.moveTo(x-5*camera.zoom,y);ctx.lineTo(x+5*camera.zoom,y+1.5*camera.zoom);ctx.stroke()}
+    ctx.restore();
+  }
+  if(!encounter)return;
+  const count=Math.max(1,encounter.count||2),scale=getSceneArtworkScale(viewportWidth);
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+  let groupLeft=Infinity,groupTop=Infinity,groupRight=-Infinity;
+  for(let i=0;i<count;i++){
+    const side=i%2?1:-1,rank=Math.floor(i/2);
+    if(encounter.phase==='survey'){
+      const image=surveyorAssets.get(getSurveyorVariantIndex(i));
+      if(image){
+        const displayHeight=47*scale,displayWidth=displayHeight*2/3;
+        const spriteX=x+side*(42+rank*28)*scale;
+        const left=spriteX-displayWidth/2,top=groundY-displayHeight*738/768;ctx.drawImage(image,left,top,displayWidth,displayHeight);
+        groupLeft=Math.min(groupLeft,left);groupTop=Math.min(groupTop,top);groupRight=Math.max(groupRight,left+displayWidth);
+        continue;
+      }
+    }
+    if(encounter.phase==='cutting'){
+      const image=loggerAssets.get(getLoggerVariantIndex(i));
+      if(image){
+        const displayHeight=47*scale,displayWidth=displayHeight*2/3;
+        const spriteX=x+side*(42+rank*28)*scale;
+        const left=spriteX-displayWidth/2,top=groundY-displayHeight*738/768;ctx.drawImage(image,left,top,displayWidth,displayHeight);
+        groupLeft=Math.min(groupLeft,left);groupTop=Math.min(groupTop,top);groupRight=Math.max(groupRight,left+displayWidth);
+        continue;
+      }
+    }
+    // Painted encounter figures redraw as their assets arrive. Do not flash
+    // the obsolete stick-figure placeholder while an image is still loading.
+    continue;
+  }
+  if(Number.isFinite(groupLeft))hitTargets.push({id:`human-${encounter.phase}`,type:'human-encounter',kind:encounter.phase==='cutting'?'loggers':'surveyors',title:encounter.phase==='cutting'?'Logging crew':'Surveyors',bounds:{x:groupLeft-10,y:groupTop-10,width:groupRight-groupLeft+20,height:groundY-groupTop+20}});
+  if(encounter.phase==='survey'&&(state.humanAttention||0)===0){
+    ctx.fillStyle='#df6d3f';ctx.beginPath();ctx.roundRect(x-5*scale,groundY-15*scale,10*scale,3.2*scale,1.4*scale);ctx.fill();
+  }
+  ctx.restore();
+}
+
+function playerHeight(state,stage,camera){
+  if(stage==='Sprout')return 8*camera.zoom;
+  if(stage==='Seed'||(!getJuvenileStageKey(state,stage)&&shouldDrawSeedRadicle(stage,state.rootZones||0,state.leafClusters||0)))return 2.6*camera.zoom;
+  const species=state.selectedSpecies||'Plum',habit=HABITS[species]||HABITS.Plum,scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+(state.trunk||0)*.025)*camera.zoom;
+  const tree=buildTree(hash(`${species}:2:resident`),state.branches||0,state.leafClusters||0,habit,stage,state.trunk||0,state.canopySpread||0,state.heightGrowth||0);
+  let top=0;tree.wood.forEach(branch=>branch.points.forEach(point=>{top=Math.min(top,point.y)}));tree.clusters.forEach(cluster=>{top=Math.min(top,cluster.y-cluster.size*1.35)});
+  return Math.max(12,-top*scale);
+}
+
+function drawNearGround(ctx,w,h,groundY,rank){
+  if(rank>1)return;const r=rng(9182),alpha=rank===0?1:.48;ctx.save();ctx.globalAlpha=alpha;
+  const clusters=rank===0?14:8,depth=Math.max(1,h-groundY-18);
+  function pebble(x,y,size,color){
+    const points=4+Math.floor(r()*3),rotation=r()*TAU;
+    ctx.fillStyle=color;ctx.beginPath();
+    for(let p=0;p<points;p++){const angle=rotation+p*TAU/points,radius=size*(.72+r()*.34),px=x+Math.cos(angle)*radius,py=y+Math.sin(angle)*radius*.68;p?ctx.lineTo(px,py):ctx.moveTo(px,py)}
+    ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(218,196,157,.36)';ctx.beginPath();ctx.arc(x-size*.2,y-size*.2,Math.max(.18,size*.16),0,TAU);ctx.fill();
+  }
+  for(let c=0;c<clusters;c++){
+    const cx=24+r()*(w-48),cy=groundY+16+r()*depth*.86,total=4+Math.floor(r()*5);
+    for(let i=0;i<total;i++){
+      const angle=r()*TAU,distance=2+r()*9,size=.55+r()*1.15;
+      const colors=['rgba(148,132,108,.80)','rgba(126,110,91,.62)','rgba(168,145,108,.96)','rgba(52,43,36,.48)'];
+      pebble(cx+Math.cos(angle)*distance,cy+Math.sin(angle)*distance*.55,size,colors[Math.floor(r()*colors.length)]);
+    }
+  }
+  for(let i=0;i<(rank===0?16:8);i++){ctx.fillStyle=i%2?'rgba(151,132,105,.48)':'rgba(43,35,30,.40)';ctx.beginPath();ctx.arc(10+r()*(w-20),groundY+12+r()*depth*.9,.3+r()*.48,0,TAU);ctx.fill()}
+  ctx.restore();
+}
+
+function drawSeasonalHedge(ctx,w,groundY,worldZoom,viewOffsetX,season){
+  const image=hedgeAssets.get(season);if(!image)return;
+  const layout=getSeasonalHedgeLayout(w,groundY,worldZoom,viewOffsetX);
+  const opacity=season==='Winter'?.52:season==='Autumn'?.42:.38;
+  ctx.save();ctx.globalAlpha=opacity;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  const source=layout.sourceRect;
+  for(const tile of getSeasonalHedgeTileDraws(layout)){
+    if(tile.mirrored){ctx.save();ctx.translate(tile.right,layout.top);ctx.scale(-1,1);ctx.drawImage(image,source.x,source.y,source.width,source.height,0,0,tile.width,layout.drawHeight);ctx.restore()}
+    else ctx.drawImage(image,source.x,source.y,source.width,source.height,tile.left,layout.top,tile.width,layout.drawHeight);
+  }
+  ctx.restore();
+}
+
+function winterGroundTile(){
+  if(!winterSnowAsset)return null;
+  if(mirroredSnowTile)return mirroredSnowTile;
+  const size=192,tile=document.createElement('canvas');tile.width=tile.height=size*2;
+  const paint=tile.getContext('2d');
+  for(let row=0;row<2;row++)for(let column=0;column<2;column++){
+    paint.save();paint.translate(column*size+(column?size:0),row*size+(row?size:0));paint.scale(column?-1:1,row?-1:1);
+    paint.drawImage(winterSnowAsset,0,0,size,size);paint.restore();
+  }
+  mirroredSnowTile=tile;return tile;
+}
+
+function winterSnowSurfaceLayer(width){
+  const roundedWidth=Math.max(1,Math.ceil(width)),tile=winterGroundTile(),cacheKey=`${roundedWidth}:${tile?'painted':'fallback'}`;
+  if(winterSnowSurfaceLayers.has(cacheKey))return winterSnowSurfaceLayers.get(cacheKey);
+  const surface=getWinterSnowSurface(roundedWidth,0),layerHeight=Math.max(1,Math.ceil(surface.fadeBottom-surface.layerTop));
+  const layer=document.createElement('canvas');layer.width=roundedWidth;layer.height=layerHeight;
+  const paint=layer.getContext('2d'),localTop=surface.top.map(point=>({x:point.x,y:point.y-surface.layerTop}));
+  paint.beginPath();paint.moveTo(localTop[0].x,localTop[0].y);for(let i=1;i<localTop.length;i++)paint.lineTo(localTop[i].x,localTop[i].y);paint.lineTo(roundedWidth,layerHeight);paint.lineTo(0,layerHeight);paint.closePath();paint.clip();
+  const snow=paint.createLinearGradient(0,0,0,layerHeight);snow.addColorStop(0,'rgba(250,253,255,.98)');snow.addColorStop(.62,'rgba(230,239,245,.92)');snow.addColorStop(1,'rgba(206,220,230,.25)');paint.fillStyle=snow;paint.fillRect(0,0,roundedWidth,layerHeight);
+  if(tile){paint.globalAlpha=.86;paint.fillStyle=paint.createPattern(tile,'repeat');paint.fillRect(0,0,roundedWidth,layerHeight);paint.globalAlpha=1}
+  paint.globalCompositeOperation='destination-in';
+  const feather=paint.createLinearGradient(0,0,0,layerHeight);feather.addColorStop(0,'rgba(255,255,255,1)');feather.addColorStop(Math.max(0,Math.min(1,(surface.opaqueBottom-surface.layerTop)/layerHeight)),'rgba(255,255,255,1)');feather.addColorStop(1,'rgba(255,255,255,0)');paint.fillStyle=feather;paint.fillRect(0,0,roundedWidth,layerHeight);
+  winterSnowSurfaceLayers.set(cacheKey,layer);return layer;
+}
+
+function drawWinterWeather(ctx,w,h,groundY){
+  const r=rng(77213),surface=getWinterSnowSurface(w,groundY);ctx.save();
+  ctx.drawImage(winterSnowSurfaceLayer(w),0,surface.layerTop);
+  for(let i=0;i<46;i++){const x=r()*w,y=8+r()*Math.max(16,groundY-18),radius=.7+r()*1.7;ctx.fillStyle=`rgba(248,252,255,${.42+r()*.42})`;ctx.beginPath();ctx.arc(x,y,radius,0,TAU);ctx.fill()}
+  ctx.restore();
+}
+
+function cameraFor(state,stage){
+  const order=['Seed','Sprout','Seedling','Sapling','Young Tree','Mature Tree','Ancient'],rank=Math.max(0,order.indexOf(stage));
+  return{rank,zoom:CAMERA_ZOOM[stage]||1};
+}
+
+function background(ctx,season){const g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,season.top);g.addColorStop(1,season.bottom);return g}
+function line(ctx,x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+
+export function getFungalNetworkSegments(trees,groundY,getRelationshipState){
+  const player=trees.find(tree=>tree.isPlayer),linked=trees.filter(tree=>{
+    const neighbor=tree.neighbor;
+    if(!neighbor||neighbor.dead)return false;
+    return neighbor.offspring||neighbor.relationName==='Ally'||getRelationshipState(neighbor.relation).name==='Ally';
+  });
+  if(!player)return[];
+  return linked.map(tree=>({from:{x:player.x,y:groundY+30},to:{x:tree.x,y:groundY+70+tree.index*5}}));
+}
+
+function drawFungalNetwork(ctx,trees,groundY,getRelationshipState){
+  const segments=getFungalNetworkSegments(trees,groundY,getRelationshipState);
+  if(!segments.length)return;
+  ctx.strokeStyle='rgba(180,220,255,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  segments.forEach(({from,to})=>{ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.bezierCurveTo(from.x-(from.x-to.x)*.3,groundY+70,to.x+(from.x-to.x)*.3,to.y-20,to.x,to.y);ctx.stroke();ctx.fillStyle='rgba(180,220,255,.4)';ctx.beginPath();ctx.arc(to.x,to.y,3,0,TAU);ctx.fill()});ctx.setLineDash([]);
+}
+
+export function getCanopyArrangement(state,slot,isPlayer=false,neighbor=null){
+  if(isPlayer){
+    const target=getPlayerShadeTarget(state),direction=target?(target.slot<2?-1:1):0;
+    return{worldOffset:direction*7,canopyLean:direction*1.55};
+  }
+  if(!neighbor)return{worldOffset:0,canopyLean:0};
+  const side=slot<2?-1:1;
+  if(neighbor.shadingPlayer)return{worldOffset:-side*32,canopyLean:-side*1.25};
+  if(neighbor.playerShading)return{worldOffset:side*34,canopyLean:side*.85};
+  return{worldOffset:0,canopyLean:0};
+}
+
+export function getCanopyShadowGeometry(sourceX,targetX,groundY){
+  const direction=targetX<sourceX?-1:1,distance=Math.abs(targetX-sourceX),startHalfWidth=Math.max(.12,distance*.01),endHalfWidth=Math.min(36,Math.max(.4,distance*.18));
+  return{sourceX,sourceY:groundY+startHalfWidth,targetX,targetY:groundY+endHalfWidth,startHalfWidth,endHalfWidth,direction,distance};
+}
+
+function drawCanopyShadow(ctx,source,target,groundY,seed){
+  const geometry=getCanopyShadowGeometry(source.x,target.x,groundY),{sourceX,sourceY,targetX,targetY,startHalfWidth,endHalfWidth,distance}=geometry,visualScale=Math.min(1,distance/180);
+  const gradient=ctx.createLinearGradient(sourceX,sourceY,targetX,targetY);
+  gradient.addColorStop(0,'rgba(28,40,31,.08)');gradient.addColorStop(.34,'rgba(25,39,30,.30)');gradient.addColorStop(1,'rgba(18,31,25,.48)');
+  const margin=endHalfWidth*1.8+2,minX=Math.min(sourceX,targetX)-margin,maxX=Math.max(sourceX,targetX)+margin;
+  ctx.save();ctx.beginPath();ctx.rect(minX,groundY,maxX-minX,Math.max(1,endHalfWidth*2.8+4));ctx.clip();
+  ctx.save();ctx.filter=`blur(${Math.max(.1,Math.min(2.5,distance*.0125))}px)`;ctx.fillStyle=gradient;ctx.beginPath();ctx.moveTo(sourceX,sourceY-startHalfWidth);ctx.lineTo(targetX,targetY-endHalfWidth);ctx.quadraticCurveTo(targetX+geometry.direction*distance*.04,targetY,targetX,targetY+endHalfWidth);ctx.lineTo(sourceX,sourceY+startHalfWidth);ctx.closePath();ctx.fill();ctx.restore();
+  const random=rng(seed);ctx.save();ctx.fillStyle='rgba(19,35,27,.25)';
+  for(let i=0;i<14;i++){const progress=.22+random()*.76,x=sourceX+(targetX-sourceX)*progress+(random()-.5)*endHalfWidth*.55,y=sourceY+(targetY-sourceY)*progress+(random()-.5)*endHalfWidth*1.05,size=Math.max(.08,(2+random()*5)*visualScale);ctx.beginPath();ctx.ellipse(x,y,size,size*.48,random()*Math.PI,0,TAU);ctx.fill()}
+  ctx.restore();ctx.restore();
+}
+
+function drawDirectionalCanopyShadows(ctx,trees,groundY){
+  const player=trees.find(tree=>tree.isPlayer),shadeTarget=getPlayerShadeTarget({neighbors:trees.map(tree=>tree.neighbor).filter(Boolean)});if(!player)return;
+  const outgoing=trees.find(tree=>tree.neighbor===shadeTarget);if(outgoing)drawCanopyShadow(ctx,player,outgoing,groundY,7100+outgoing.index);
+  trees.filter(tree=>tree.neighbor?.shadingPlayer).forEach(tree=>drawCanopyShadow(ctx,tree,player,groundY,7900+tree.index));
+}
+
+function drawPaintedTreeStructure(ctx,image,stageKey,visualState,shaded=false,reveal=null){
+  const geometry=getTreeStructureGeometry(stageKey,visualState),{width,height,groundRatio}=geometry;
+  ctx.save();ctx.globalAlpha=shaded?.84:1;ctx.filter=shaded?'brightness(.58) saturate(.76)':'none';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  if(getJoinProfile(visualState.selectedSpecies,visualState.presentationStage)){
+    const patch=requestTreeGrowthAsset(visualState.selectedSpecies,`join-${stageKey}`);
+    drawJoinedRootTree(ctx,image,geometry,visualState,reveal,patch);ctx.restore();return;
+  }
+  const source=getTreeStructureSourceRect(visualState.selectedSpecies,stageKey);
+  const family=rootExtensionFamily(visualState.presentationStage);
+  const extension=family==='juvenile'?requestTreeGrowthAsset(visualState.selectedSpecies,'root-extension-juvenile'):null;
+  const materialImage=family==='botanical'?requestTreeStructureAsset(visualState.selectedSpecies,'ancient'):null;
+  const materialSource=materialImage?getTreeStructureSourceRect(visualState.selectedSpecies,'ancient'):null;
+  const materialGroundRatio=TREE_STRUCTURE_GEOMETRY.ancient.groundRatio;
+  drawRootGrowth(ctx,image,source,geometry,visualState,reveal,extension,materialImage,materialSource,materialGroundRatio);
+  ctx.restore();
+}
+
+function drawPaintedSproutFoliage(ctx,species,seed,leafCount,season,shaded=false){
+  if(season==='Winter'||leafCount<=0)return;
+  const count=Math.max(1,Math.min(3,Math.ceil(leafCount/2))),filter=paintedFoliageFilter(season,shaded);
+  for(let index=0;index<count;index+=1){
+    const image=botanicalAsset(species,'foliage',seed,index);if(!image)continue;
+    const side=index%2?-1:1,rank=Math.floor(index/2),cluster={x:side*(3.2+rank*1.3),y:-30+rank*4,size:2.2+Math.min(1.2,leafCount*.12)};
+    drawBotanicalModule(ctx,image,cluster,seed+index*701+91,3.2,filter,shaded?.86:.94);
+  }
+}
+
+function drawTree({ctx,x,groundY,isPlayer,neighbor,state,season,playerStageName,getRelationshipState,index,camera,canopyLean=0,growthReveal=null}){
+  const stage=isPlayer?playerStageName:(neighbor?.stageName||'Sapling');
+  const species=isPlayer?(state.selectedSpecies||'Plum'):(neighbor?.species||'Plum'); const habit=HABITS[species]||HABITS.Plum;
+  const leaves=isPlayer?state.leafClusters:(neighbor?.leafClusters??neighbor?.branches??2), branches=isPlayer?state.branches:(neighbor?.branches??2), trunk=isPlayer?state.trunk:(neighbor?.trunk??1), roots=isPlayer?state.rootZones:(neighbor?.roots??2),taproot=isPlayer?(state.taprootDepth||0):0;
+  const heightGrowth=isPlayer?(state.heightGrowth||0):(neighbor?.heightGrowth||0),scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom,seed=hash(`${species}:${index}:${neighbor?.offspring?'offspring':'resident'}`),shaded=!isPlayer&&isTreeShaded(state,neighbor),wood=getWoodPalette(habit.bark,shaded);
+  const attachPests=(image,source,geometry,growth)=>isPlayer?drawAttachedPests({
+    ctx,state,kinds:getSceneArtKinds(state),image,source,geometry,growth,season,
+    getImage:kind=>insectAssets.get(kind),getLeafImage:i=>botanicalAsset(species,'foliage',seed,i),
+    reveal:growthReveal,scale,toScreen:p=>({x:x+(p.x-canopyLean*.16*p.y)*scale,y:groundY+p.y*scale}),
+  }):[];
+  const rootedSeed=shouldDrawSeedRadicle(stage,roots,leaves);
+  const visualState={selectedSpecies:species,presentationStage:stage,branches,leafClusters:leaves,trunk,rootZones:roots,taprootDepth:taproot,turnsInStage:isPlayer?state.turnsInStage:0,canopySpread:isPlayer?(state.canopySpread||0):0,heightGrowth,visualGrowth:isPlayer?state.visualGrowth:null};
+  if(!isPlayer&&neighbor?.dead){
+    drawDeadTree(ctx,x,groundY,stage,trunk,camera,visualState,canopyLean,neighbor.deathAge||0);
+    return;
+  }
+  const growthSprites={
+    getRootImage:part=>requestTreeGrowthAsset(species,`root-${part.spriteVariant||'fan'}`),
+    getBranchImage:()=>requestTreeGrowthAsset(species,'shoot'),
+  };
+  if(stage==='Seed'||stage==='Sprout'||stage==='Seedling')for(const key of JUVENILE_KEYS)requestTreeStructureAsset(species,key);
+  const juvenileKey=getJuvenileStageKey(visualState,stage);
+  if(juvenileKey) {
+    // Preload all three at the seed. If a transition image is still loading,
+    // retain the last juvenile specimen (or rooted seed), never a woody stick.
+    const key=[juvenileKey,...JUVENILE_KEYS.slice(0,JUVENILE_KEYS.indexOf(juvenileKey)).reverse()].find(k=>treeStructureAssets.has(`${species}:${k}`));
+    const image=key&&requestTreeStructureAsset(species,key);
+    if(image) {
+      const geometry=getJuvenileGeometry(species,key,visualState);
+      const growth=preparePaintedGrowth(image,null,isPlayer?state:visualState,stage,geometry,getJuvenileLayers(image,geometry).dormant);
+      const rootExtension=requestTreeGrowthAsset(species,'root-extension-juvenile');
+      ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
+      if(shaded)ctx.filter='brightness(.58) saturate(.76)';
+      drawGrowthSprites(ctx,growth,growthReveal,season,growthSprites);
+      drawGrowthWood(ctx,growth,growthReveal,season);
+      const filter=paintedFoliageFilter(season,shaded);
+      const previousKey=growthReveal&&growthReveal.from.leaves>0?JUVENILE_KEYS[Math.min(2,growthReveal.from.leaves-1)]:null;
+      const previous=previousKey&&previousKey!==key&&treeStructureAssets.get(`${species}:${previousKey}`);
+      if(previous)drawJuvenilePlant(ctx,previous,getJuvenileGeometry(species,previousKey,visualState),season,leaves,filter,1-growthReveal.progress,isPlayer?state:visualState,growthReveal,rootExtension);
+      drawJuvenilePlant(ctx,image,geometry,season,leaves,filter,previous?growthReveal.progress:1,isPlayer?state:visualState,growthReveal,rootExtension);
+      const donor=requestTreeStructureAsset(species,'first-leaves');
+      if(donor)drawJuvenileLeaves(ctx,growth,growthReveal,season,donor,getJuvenileGeometry(species,'first-leaves',visualState),filter);
+      const targets=attachPests(image,null,geometry,growth);
+      ctx.restore();return targets;
+    }
+  }
+  const desiredStructureStageKey=juvenileKey?'rooted-seed':getTreeStructureStageKey(stage,{rootedSeed});
+  requestTreeStructureAsset(species,desiredStructureStageKey);
+  const structureStageKey=getTreeStructureFallbackKeys(desiredStructureStageKey).find(key=>treeStructureAssets.has(`${species}:${key}`))||desiredStructureStageKey;
+  const structureImage=requestTreeStructureAsset(species,structureStageKey);
+  if(structureImage){
+    // A late-loading stage must retain a coherent old specimen, never stretch
+    // the old PNG through the new species/stage's collar measurements.
+    const actualStage={'sapling':'Sapling','young-tree':'Young Tree','mature-tree':'Mature Tree','ancient':'Ancient'}[structureStageKey];
+    if(actualStage){visualState.lifeStage={name:stage};visualState.presentationStage=actualStage;}
+    ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
+    if(isPlayer&&stage!=='Seed'){
+      const geometry=getTreeStructureGeometry(structureStageKey,visualState);
+      const growth=preparePaintedGrowth(structureImage,getTreeStructureSourceRect(species,structureStageKey),state,stage,geometry);
+      drawGrowthSprites(ctx,growth,growthReveal,season,growthSprites);
+      drawGrowthWood(ctx,growth,growthReveal,season);
+      drawPaintedTreeStructure(ctx,structureImage,structureStageKey,{...visualState,taprootDepth:state.taprootDepth},shaded,growthReveal);
+      if(!juvenileKey)drawGrowthLeaves(ctx,growth,growthReveal,season,i=>botanicalAsset(species,'foliage',seed,i),paintedFoliageFilter(season,shaded));
+      if(!rootedSeed){
+        const tree=buildTree(seed,branches,leaves,habit,stage,trunk,state.canopySpread||0,heightGrowth);
+        if(state.thornDefense>0||state.toxicLeaves>0)drawPlayerDefenses(ctx,tree,state,seed);
+        if(shouldDrawPlayerBlossoms(state,season))drawBlossoms(ctx,growth,seed,state.flowers,species);
+        if(season==='Summer'&&state.developing>0)drawFruit(ctx,growth,seed,state.developing,species);
+      }
+      const targets=attachPests(structureImage,getTreeStructureSourceRect(species,structureStageKey),geometry,growth);
+      ctx.restore();return targets;
+    }
+    if(stage==='Seed'){
+      requestTreeStructureAsset(species,'rooted-seed');requestTreeStructureAsset(species,'sprout');
+    }
+    if(stage==='Seed'||rootedSeed){drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);ctx.restore();return}
+    if(stage==='Sprout'){
+      drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);drawPaintedSproutFoliage(ctx,species,seed,leaves,season,shaded);ctx.restore();return;
+    }
+    // Neighbor foliage must use the same painted-tissue attachment system as
+    // the player. The old procedural crown had different branch geometry from
+    // the painted structure beneath it, so otherwise-correct clusters floated.
+    const geometry=getTreeStructureGeometry(structureStageKey,visualState);
+    const growth=preparePaintedGrowth(structureImage,getTreeStructureSourceRect(species,structureStageKey),visualState,stage,geometry);
+    drawGrowthSprites(ctx,growth,null,season,growthSprites);
+    drawGrowthWood(ctx,growth,null,season);
+    drawPaintedTreeStructure(ctx,structureImage,structureStageKey,visualState,shaded);
+    drawGrowthLeaves(ctx,growth,null,season,i=>botanicalAsset(species,'foliage',seed,i),paintedFoliageFilter(season,shaded));
+    ctx.restore();return;
+  }
+}
+
+function drawDeadTree(ctx,x,groundY,stage,trunk,camera,visualState,canopyLean,deathAge){
+  const scale=(STAGE_SCALE[stage]||.7)*Math.min(1.18,1+trunk*.025)*camera.zoom;
+  const presentation=getDeadTreePresentation(stage,deathAge,visualState);
+  ctx.save();ctx.translate(x,groundY);ctx.scale(scale,scale);ctx.transform(1,0,-canopyLean*.16,1,0,0);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  if(presentation.kind==='stump'){
+    if(deadTreeStumpAsset){
+      ctx.filter='saturate(.72) brightness(.78) contrast(1.04)';
+      ctx.drawImage(deadTreeStumpAsset,-presentation.width/2,-presentation.height*.86,presentation.width,presentation.height);
+    }
+  }else{
+    const image=requestTreeStructureAsset(visualState.selectedSpecies,presentation.stageKey);
+    if(image){
+      const geometry=getTreeStructureGeometry(presentation.stageKey,visualState);
+      const source=getTreeStructureSourceRect(visualState.selectedSpecies,presentation.stageKey);
+      ctx.globalAlpha=.94;ctx.filter='grayscale(.74) sepia(.18) saturate(.38) brightness(.68) contrast(1.14)';
+      if(getJoinProfile(visualState.selectedSpecies,stage)){
+        const patch=requestTreeGrowthAsset(visualState.selectedSpecies,`join-${presentation.stageKey}`);
+        drawJoinedRootTree(ctx,image,geometry,visualState,null,patch);
+      }else drawRootGrowth(ctx,image,source,geometry,visualState);
+    }
+  }
+  ctx.restore();
+}
+
+export function shouldDrawPlayerBlossoms(state,season){return season==='Spring'&&(state.flowers||0)>0}
+export function shouldDrawSeedRadicle(stage,roots,leaves){return(stage==='Seed'||stage==='Sprout')&&roots>0&&leaves===0}
+export function isTreeShaded(state,neighbor){const target=getPlayerShadeTarget(state);return Boolean(neighbor&&(neighbor.slot===target?.slot||(neighbor.offspring&&offspringSharesShadeDirection(neighbor,neighbor.offspringIndex,target))))}
+
+function drawPlayerDefenses(ctx,tree,state,seed){
+  const r=rng(seed+7117),thornCount=Math.min(28,(state.thornDefense||0)*8),toxicCount=Math.min(34,(state.toxicLeaves||0)*9);
+  ctx.save();ctx.lineCap='round';
+  ctx.strokeStyle='rgba(89,73,46,.92)';ctx.lineWidth=.7;
+  for(let i=0;i<thornCount;i++){
+    const branch=tree.wood[Math.floor(r()*tree.wood.length)],point=branch.points[4+Math.floor(r()*Math.max(1,branch.points.length-8))],side=r()<.5?-1:1;
+    ctx.beginPath();ctx.moveTo(point.x,point.y);ctx.lineTo(point.x+side*(2.5+r()*2),point.y-(1+r()*2));ctx.stroke();
+  }
+  ctx.fillStyle='rgba(82,67,109,.72)';
+  for(let i=0;i<toxicCount;i++){
+    const cluster=tree.clusters[Math.floor(r()*tree.clusters.length)],angle=r()*TAU,distance=Math.sqrt(r())*cluster.size*.72;
+    ctx.beginPath();ctx.ellipse(cluster.x+Math.cos(angle)*distance,cluster.y+Math.sin(angle)*distance*.7,1.8+r()*1.2,.85+r()*.65,angle,0,TAU);ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawSeed(ctx,x,y,species,zoom,seed){
+  const colors=SEED_PALETTES[species]||SEED_PALETTES.Plum,r=rng(seed+8317);
+  ctx.save();ctx.translate(x,y);ctx.scale(zoom,zoom);ctx.rotate(-.12);
+  ctx.fillStyle='rgba(18,14,10,.28)';ctx.beginPath();ctx.ellipse(.05,.12,2.15,.34,0,0,TAU);ctx.fill();
+  const shell=ctx.createRadialGradient(-.65,-1.9,.08,.15,-1.18,2.3);shell.addColorStop(0,colors[0]);shell.addColorStop(.58,colors[1]);shell.addColorStop(1,colors[2]);
+  ctx.fillStyle=shell;ctx.strokeStyle='rgba(55,34,24,.85)';ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(-2,-.88);ctx.bezierCurveTo(-1.68,-1.95,-.72,-2.62,.45,-2.48);ctx.bezierCurveTo(1.5,-2.36,2.07,-1.5,1.82,-.72);ctx.bezierCurveTo(1.53,.08,.46,.23,-.58,.08);ctx.bezierCurveTo(-1.37,.04,-1.83,-.4,-2,-.88);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(66,39,27,.64)';ctx.lineWidth=.16;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(1.25,-1.86);ctx.bezierCurveTo(.72,-1.26,.2,-.72,-.93,-.38);ctx.stroke();
+  ctx.strokeStyle='rgba(255,235,190,.48)';ctx.lineWidth=.18;ctx.beginPath();ctx.moveTo(-1.18,-1.55);ctx.quadraticCurveTo(-.72,-2.02,-.15,-2.08);ctx.stroke();
+  ctx.fillStyle='rgba(63,38,26,.42)';for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(-.8+r()*1.9,-.45-r()*1.55,.035+r()*.055,0,TAU);ctx.fill()}
+  ctx.restore();
+}
+
+function drawSeedRadicle(ctx,x,y,zoom,color,seed,rootCount){
+  const random=rng(seed+9471),length=(2.8+Math.min(3,rootCount)*.65)*zoom,bend=(random()-.5)*1.2*zoom;
+  ctx.save();ctx.strokeStyle=color;ctx.lineCap='round';ctx.lineWidth=Math.max(1,.52*zoom);ctx.beginPath();ctx.moveTo(x,y-.1*zoom);ctx.bezierCurveTo(x+bend*.15,y+length*.28,x+bend,y+length*.7,x+bend*.72,y+length);ctx.stroke();
+  if(rootCount>1){ctx.lineWidth=Math.max(.7,.25*zoom);ctx.beginPath();ctx.moveTo(x+bend*.55,y+length*.7);ctx.lineTo(x+bend*.55+(random()<.5?-1:1)*1.15*zoom,y+length*.9);ctx.stroke()}
+  ctx.restore();
+}
+
+function drawRoots(ctx,x,y,count,taproot,scale,color,seed,player,highlight='rgba(197,169,117,.2)'){
+  const r=rng(seed+4409),rootCount=Math.max(1,Math.min(count+(player&&count>0?2:0),8)),paths=[];
+  function root(sx,sy,angle,length,width,depth){
+    const bend=(r()-.5)*.62,wave=(r()-.5)*.28,points=[];
+    for(let i=0;i<=16;i++){const t=i/16,curve=angle+bend*t+Math.sin(t*Math.PI)*wave;points.push({x:sx+Math.cos(curve)*length*t,y:sy+Math.sin(curve)*length*t+length*.12*t*t,width:width*(1-.76*t)})}
+    paths.push(points);if(depth>0){const attach=points[9],previous=points[8],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),side=Math.cos(angle)>=0?1:-1;root(attach.x,attach.y,heading+side*(.45+r()*.38),length*(.4+r()*.16),attach.width*.58,depth-1)}
+  }
+  for(let i=0;i<rootCount;i++){const side=i%2?1:-1,rank=Math.floor(i/2),angle=side>0?.2+r()*.3:Math.PI-(.2+r()*.3),length=(26+rank*7+r()*10)*scale,width=Math.max(1.4,(7.5-rank*.6)*scale),depth=player?(count>=6?2:count>=1?1:0):0;root(x+side*2*scale,y+2*scale,angle,length,width,depth)}
+  if(taproot>0){const length=Math.min(105,30+taproot*13)*scale;root(x,y+2*scale,Math.PI/2+(r()-.5)*.08,length,Math.max(2.5,(8+taproot*.6)*scale),taproot>=3?1:0)}
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=player ? .92 : .62;
+  paths.forEach(points=>{for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];ctx.strokeStyle=color;ctx.lineWidth=Math.max(.55,a.width);line(ctx,a.x,a.y,b.x,b.y);ctx.strokeStyle=highlight;ctx.lineWidth=Math.max(.35,a.width*.16);line(ctx,a.x-a.width*.12,a.y,b.x-b.width*.12,b.y)}});
+  const flare=11*scale;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x-flare*.55,y-4*scale);ctx.quadraticCurveTo(x-flare*.7,y+3*scale,x-flare*1.45,y+9*scale);ctx.quadraticCurveTo(x-flare*.45,y+7*scale,x,y+5*scale);ctx.quadraticCurveTo(x+flare*.55,y+8*scale,x+flare*1.45,y+9*scale);ctx.quadraticCurveTo(x+flare*.65,y+2*scale,x+flare*.55,y-4*scale);ctx.closePath();ctx.fill();ctx.restore();
+}
+function drawSprout(ctx,x,y,bark,seed,zoom,leafCount=0,trunkLevel=1){
+  const r=rng(seed),stemHeight=13+Math.min(5,leafCount)*1.2;
+  ctx.save();ctx.translate(x,y);ctx.scale(zoom,zoom);ctx.strokeStyle=bark;ctx.lineWidth=1.45+Math.min(4,trunkLevel)*.32;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo((r()-.5)*4,-stemHeight*.54,0,-stemHeight);ctx.stroke();
+  [-1,1].forEach(side=>{ctx.save();ctx.translate(side*3.7,-11.5);ctx.rotate(side*.45);ctx.fillStyle=side<0?'#7fa65c':'#98ba68';ctx.beginPath();ctx.ellipse(0,0,4.8,2.4,0,0,TAU);ctx.fill();ctx.restore()});
+  for(let i=0;i<Math.min(6,leafCount);i+=1){const side=i%2?1:-1,py=-13-i*1.7,px=side*(2.5+(i%3)*.45);ctx.save();ctx.translate(px,py);ctx.rotate(side*(.32+(i%2)*.1));ctx.fillStyle=i%2?'#88ae63':'#a4c878';ctx.beginPath();ctx.ellipse(0,0,3.2,1.6,0,0,TAU);ctx.fill();ctx.restore()}
+  ctx.restore();
+}
+
+export function getPlayerVisualProfile(state,stage=state.lifeStage?.name||'Seed'){
+  const branchCount=Math.max(0,state.branches||0),leafCount=Math.max(0,state.leafClusters||0),trunkLevel=Math.max(0,state.trunk||0),canopySpread=Math.max(0,state.canopySpread||0),art=getStageArtProfile(stage);
+  return{
+    stage,
+    silhouette:art.silhouette,
+    branchShoots:Math.min(10,branchCount),
+    foliageClusters:leafCount===0?0:Math.max(1,leafCount+Math.floor(leafCount/2)),
+    foliageDensity:leafCount===0?0:Math.min(30,5+leafCount*2),
+    trunkWidth:art.trunkBaseWidth+Math.min(8,trunkLevel*(stage==='Seedling'?.7:1.05))+Math.min(6,branchCount*.48),
+    foliageScale:art.foliageScale,
+    terminalTaper:art.terminalTaper,
+    canopySpreadFactor:1+Math.min(.38,canopySpread*.07),
+    heightFactor:1+Math.min(.5,Math.max(0,state.heightGrowth||0)*.075),
+    rootBranches:Math.max(1,Math.min((state.rootZones||0)+((state.rootZones||0)>0?2:0),8)),
+    taprootDepth:Math.max(0,state.taprootDepth||0),
+  };
+}
+
+function buildTree(seed,branchCount,leafCount,habit,stage,trunkLevel=1,canopySpread=0,heightGrowth=0){
+  const r=rng(seed),wood=[],clusters=[],depth=stage==='Sapling'?1:stage==='Young Tree'?2:stage==='Ancient'?4:3,structure=Math.max(.72,Math.min(1.32,.78+branchCount*.055)),profile=getPlayerVisualProfile({branches:branchCount,leafClusters:leafCount,trunk:trunkLevel,canopySpread,heightGrowth,rootZones:0,taprootDepth:0,lifeStage:{name:stage}},stage);
+  const botanicalAngle=angle=>Math.max(-Math.PI+.32,Math.min(-.32,angle));
+  function limb(x,y,angle,length,width,remaining,turn=0,z=r()){
+    angle=botanicalAngle(angle);const bend=(r()-.5)*habit.bend*.68,endAngle=botanicalAngle(angle+turn+bend),travelAngle=botanicalAngle(angle+turn*.72+bend*.36),p0={x,y},p1={x:x+Math.cos(angle)*length*.38,y:y+Math.sin(angle)*length*.38},p3={x:x+Math.cos(travelAngle)*length*habit.spread*profile.canopySpreadFactor,y:y+Math.sin(travelAngle)*length},p2={x:p3.x-Math.cos(endAngle)*length*.32,y:p3.y-Math.sin(endAngle)*length*.32},points=[];
+    const endRatio=remaining?.7:profile.terminalTaper;
+    for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-(1-endRatio)*t)})}wood.push({points,z});
+    if(!remaining){clusters.push({x:p3.x,y:p3.y,size:8+r()*5+Math.min(5,leafCount*.12),z});return}
+    const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);limb(end.x,end.y,tangent,length*(.62+r()*.07),getJoinedLimbWidth(end.width,'continuation'),remaining-1,(r()-.5)*.12,z+.01);
+    [-1,1].forEach(side=>{const k=8+(side>0?3:0),p=points[k],q=points[k-1],a=Math.atan2(p.y-q.y,p.x-q.x);limb(p.x,p.y,a,length*(.48+r()*.13),getJoinedLimbWidth(p.width,'lateral'),remaining-1,side*(.58+r()*.3),z+side*.08)})
+  }
+  function vaseLimb(x,y,angle,length,width,remaining,side,z=r()){
+    angle=botanicalAngle(angle);const bend=(r()-.5)*habit.bend*.34,endAngle=botanicalAngle(angle+bend),travelAngle=botanicalAngle(angle+bend*.48),p0={x,y},p1={x:x+Math.cos(angle)*length*.36,y:y+Math.sin(angle)*length*.36},p3={x:x+Math.cos(travelAngle)*length*profile.canopySpreadFactor,y:y+Math.sin(travelAngle)*length},p2={x:p3.x-Math.cos(endAngle)*length*.3,y:p3.y-Math.sin(endAngle)*length*.3},points=[];
+    const endRatio=remaining?.72:profile.terminalTaper;
+    for(let i=0;i<=18;i++){const t=i/18,u=1-t;points.push({x:u**3*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t**3*p3.x,y:u**3*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t**3*p3.y,width:width*(1-(1-endRatio)*t)})}wood.push({points,z});
+    if(!remaining){clusters.push({x:p3.x,y:p3.y,size:9+r()*4+Math.min(4,leafCount*.12),z});return}
+    const end=points.at(-1),prev=points.at(-2),tangent=Math.atan2(end.y-prev.y,end.x-prev.x);
+    const continuationScale=remaining===1?.54+r()*.04:.64+r()*.06,forkScale=remaining===1?.38+r()*.05:.46+r()*.08;
+    vaseLimb(end.x,end.y,tangent+(r()-.5)*.12,length*continuationScale,getJoinedLimbWidth(end.width,'continuation'),remaining-1,side,z+.01);
+    const k=9+Math.floor(r()*3),p=points[k],q=points[k-1],heading=Math.atan2(p.y-q.y,p.x-q.x);
+    vaseLimb(p.x,p.y,heading+side*(.42+r()*.18),length*forkScale,getJoinedLimbWidth(p.width,'lateral'),remaining-1,side,z+side*.08);
+  }
+  if(stage==='Seedling'){
+    const stemHeight=(49+Math.min(5,heightGrowth)*3.2)*habit.height,stemLean=(r()-.5)*3.2,stem=[];
+    for(let i=0;i<=18;i++){const t=i/18;stem.push({x:stemLean*t*t,y:-stemHeight*t,width:profile.trunkWidth*(1-(1-profile.terminalTaper)*t)})}
+    wood.push({points:stem,z:.5});
+    const lateralCount=Math.max(1,Math.min(4,leafCount));
+    for(let i=0;i<lateralCount;i+=1){
+      const side=i%2?-1:1,t=.48+(Math.floor(i/2)*.16)+(i%2)*.07,attach=stem[Math.min(16,Math.round(t*18))],previous=stem[Math.max(0,Math.round(t*18)-1)],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),length=10.5+(i%2)*1.8+r()*2.2,angle=heading+side*(.72+r()*.12),end={x:attach.x+Math.cos(angle)*length,y:attach.y+Math.sin(angle)*length},points=[];
+      for(let p=0;p<=10;p+=1){const progress=p/10;points.push({x:attach.x+(end.x-attach.x)*progress,y:attach.y+(end.y-attach.y)*progress-Math.sin(progress*Math.PI)*1.1,width:getJoinedLimbWidth(attach.width,'lateral')*(1-(1-profile.terminalTaper)*progress)})}
+      wood.push({points,z:.42+i*.05});clusters.push({x:end.x,y:end.y,size:4.1+r()*1.1,z:.42+i*.05});
+    }
+    clusters.push({x:stem.at(-1).x,y:stem.at(-1).y-1,size:4.6+r(),z:.58});
+    return{wood,clusters,leafCount,profile};
+  }
+  if((habit===HABITS.Peach||habit===HABITS.Apricot||habit===HABITS.Pear||habit===HABITS.Cherry||habit===HABITS.Citrus)&&stage!=='Seedling'){
+    const isApricot=habit===HABITS.Apricot,isPear=habit===HABITS.Pear,isCherry=habit===HABITS.Cherry,isCitrus=habit===HABITS.Citrus,trunkHeight=(stage==='Sapling'?(isPear?46:isCherry?40:isCitrus?34:38):isPear?68:isCherry?50:isCitrus?45:isApricot?54:50)*profile.heightFactor,trunkLean=(r()-.5)*(isPear?3:isCherry?3.1:isCitrus?2.8:3.4),trunkPoints=[];
+    for(let i=0;i<=18;i++){const t=i/18;trunkPoints.push({x:trunkLean*t*t,y:-trunkHeight*t,width:profile.trunkWidth*(1-((isCherry||isCitrus) ? .72 : .4)*t)})}wood.push({points:trunkPoints,z:.5});
+    const scaffoldDepth=isPear?(stage==='Ancient'?2:1):isCherry?(stage==='Ancient'?2:1):isCitrus?(stage==='Ancient'?2:1):isApricot?(stage==='Ancient'?2:1):(stage==='Ancient'?3:stage==='Sapling'?1:2),scaffolds=stage==='Sapling'?
+      (isPear?
+        [{t:.55,angle:-2.26,length:25,side:-1},{t:.78,angle:-1.54,length:28,side:-1},{t:.64,angle:-.88,length:25,side:1}]:
+      isCherry?
+        [{t:.54,angle:-2.42,length:26,side:-1},{t:.77,angle:-1.7,length:29,side:-1},{t:.65,angle:-.78,length:27,side:1}]:
+      isCitrus?
+        [{t:.48,angle:-2.52,length:27,side:-1},{t:.76,angle:-1.92,length:29,side:-1},{t:.78,angle:-1.18,length:29,side:1},{t:.5,angle:-.62,length:27,side:1}]:
+        [{t:.58,angle:-2.35,length:26,side:-1},{t:.72,angle:-1.02,length:29,side:1},{t:.8,angle:-1.78,length:25,side:-1}]):
+      isPear?
+        [{t:.46,angle:-2.55,length:35,side:-1},{t:.62,angle:-2.15,length:39,side:-1},{t:.82,angle:-1.82,length:36,side:-1},{t:1,angle:-1.46,length:34,side:1},{t:.75,angle:-1.12,length:38,side:1},{t:.56,angle:-.66,length:34,side:1}]:
+      isCherry?
+        [{t:.46,angle:-2.58,length:38,side:-1,depth:1},{t:.68,angle:-2.12,length:42,side:-1,depth:0},{t:1,angle:-2.14,length:36,side:-1,depth:0},{t:1,angle:-1,length:36,side:1,depth:0},{t:.7,angle:-.98,length:42,side:1,depth:0},{t:.48,angle:-.56,length:38,side:1,depth:1}]:
+      isCitrus?
+        [{t:.4,angle:-2.68,length:34,side:-1,depth:1},{t:.58,angle:-2.28,length:37,side:-1,depth:0},{t:.8,angle:-1.92,length:36,side:-1,depth:0},{t:1,angle:-2.08,length:31,side:-1,depth:0},{t:1,angle:-1.06,length:31,side:1,depth:0},{t:.8,angle:-1.2,length:36,side:1,depth:0},{t:.58,angle:-.84,length:37,side:1,depth:0},{t:.4,angle:-.46,length:34,side:1,depth:1}]:
+      isApricot?
+        [{t:.54,angle:-2.53,length:32,side:-1},{t:.66,angle:-2.08,length:34,side:-1},{t:.78,angle:-1.58,length:35,side:1},{t:.69,angle:-1.06,length:34,side:1},{t:.56,angle:-.6,length:32,side:1}]:
+        [{t:.56,angle:-2.48,length:31,side:-1},{t:.68,angle:-2.02,length:36,side:-1},{t:.74,angle:-1.12,length:37,side:1},{t:.6,angle:-.64,length:32,side:1}];
+    scaffolds.forEach((scaffold,index)=>{const attach=trunkPoints[Math.round(scaffold.t*18)],angle=scaffold.angle+(r()-.5)*.1,length=scaffold.length*(.94+r()*.12);vaseLimb(attach.x,attach.y,angle,length,getJoinedLimbWidth(attach.width,'lateral'),scaffold.depth??scaffoldDepth,scaffold.side,.36+index*.09)});
+    if(stage==='Mature Tree'||stage==='Ancient'){
+      const top=trunkPoints.at(-1),previous=trunkPoints.at(-2),heading=Math.atan2(top.y-previous.y,top.x-previous.x),leaderLength=(stage==='Ancient'?28:22)*(isPear?1.12:isCitrus?.9:1);
+      vaseLimb(top.x,top.y,heading,leaderLength,getJoinedLimbWidth(top.width,'continuation'),stage==='Ancient'?1:0,1,.52);
+    }
+    return{wood,clusters,leafCount,profile};
+  }
+  limb(0,0,-Math.PI/2,62*habit.height*structure*profile.heightFactor,profile.trunkWidth,depth);
+  const establishedWood=[...wood];
+  for(let i=0;i<profile.branchShoots;i+=1){const host=establishedWood[(i*7+3)%establishedWood.length],attachIndex=5+((i*3)%8),attach=host.points[Math.min(attachIndex,host.points.length-2)],previous=host.points[Math.max(0,attachIndex-1)],heading=Math.atan2(attach.y-previous.y,attach.x-previous.x),side=i%2?1:-1;limb(attach.x,attach.y,heading,9+(i%4)*1.4,Math.max(1.2,attach.width*.46),0,side*(.38+(i%3)*.09),host.z+side*.11)}
+  return{wood,clusters,leafCount,profile};
+}
+
+function drawWood(ctx,tree,bark,highlight='rgba(201,177,127,.28)'){ctx.lineCap='round';ctx.lineJoin='round';[...tree.wood].sort((a,b)=>a.z-b.z).forEach(branch=>{const p=branch.points;ctx.fillStyle=bark;fillTapered(ctx,p);ctx.strokeStyle=highlight;ctx.save();ctx.translate(-p[0].width*.11,0);strokeTapered(ctx,p,.12,.34);ctx.restore()});ctx.fillStyle=bark;ctx.beginPath();if(tree.profile?.stage==='Seedling'){const radius=(tree.profile.trunkWidth||3.2)*.5;ctx.moveTo(-radius*.82,-10);ctx.quadraticCurveTo(-radius*.95,-3,-radius*1.55,2.5);ctx.quadraticCurveTo(-radius*.62,1.4,0,.7);ctx.quadraticCurveTo(radius*.62,1.5,radius*1.55,2.5);ctx.quadraticCurveTo(radius*.95,-3,radius*.82,-10)}else{const base=Math.max(7,(tree.profile?.trunkWidth||13)*.56);ctx.moveTo(-base,-14);ctx.quadraticCurveTo(-base,-2,-base*2.3,4);ctx.quadraticCurveTo(-base*.85,2,0,1);ctx.quadraticCurveTo(base*.85,3,base*2.2,4);ctx.quadraticCurveTo(base,-3,base,-14)}ctx.closePath();ctx.fill()}
+function fillTapered(ctx,points,scale=1,minWidth=.55){if(points.length<2)return;const left=[],right=[];points.forEach((point,index)=>{const before=points[Math.max(0,index-1)],after=points[Math.min(points.length-1,index+1)],dx=after.x-before.x,dy=after.y-before.y,length=Math.hypot(dx,dy)||1,radius=Math.max(minWidth,point.width*scale)/2,nx=-dy/length,ny=dx/length;left.push({x:point.x+nx*radius,y:point.y+ny*radius});right.push({x:point.x-nx*radius,y:point.y-ny*radius})});ctx.beginPath();ctx.moveTo(left[0].x,left[0].y);left.slice(1).forEach(point=>ctx.lineTo(point.x,point.y));[...right].reverse().forEach(point=>ctx.lineTo(point.x,point.y));ctx.closePath();ctx.fill()}
+function strokeTapered(ctx,points,scale=1,minWidth=.55){for(let i=1;i<points.length;i+=1){ctx.lineWidth=Math.max(minWidth,(points[i-1].width+points[i].width)*.5*scale);ctx.beginPath();ctx.moveTo(points[i-1].x,points[i-1].y);ctx.lineTo(points[i].x,points[i].y);ctx.stroke()}}
+function stroke(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}
+
+function botanicalAsset(species,kind,treeSeed,placementIndex){
+  const family=`${species}:${kind}`,variantCount=getBotanicalVariantCount(species,kind);
+  if(!variantCount)return null;
+  const selected=getBotanicalVariantIndex(species,kind,treeSeed,placementIndex,variantCount);
+  if(botanicalAssets.has(`${family}:${selected}`))return botanicalAssets.get(`${family}:${selected}`);
+  for(let index=0;index<variantCount;index+=1){if(botanicalAssets.has(`${family}:${index}`))return botanicalAssets.get(`${family}:${index}`)}
+  return null;
+}
+function botanicalEntries(tree,seed,kind,count){
+  const candidates=tree.clusters.map((cluster,index)=>({cluster,index})).filter(({cluster})=>kind==='foliage'||!cluster.foliageOnly),limit=getBotanicalModuleCount(kind,count,candidates.length);
+  if(!limit)return[];
+  const entries=candidates.map(({cluster,index})=>({cluster,index,priority:hash(`${seed}:${kind}:${index}`)}));
+  if(kind==='foliage')return entries.sort((a,b)=>a.priority-b.priority).slice(0,limit);
+  const spread=entries.sort((a,b)=>a.cluster.x-b.cluster.x),step=spread.length/limit;
+  return Array.from({length:limit},(_,index)=>spread[Math.min(spread.length-1,Math.floor((index+.5)*step))]);
+}
+export function paintedCanopyEntries(growth,seed,kind,count){
+  const candidates=(growth?.leaves||[]).map((leaf,index)=>({
+    leaf,index,
+    cluster:{x:leaf.end.x,y:leaf.end.y,size:leaf.width/4.8},
+  }));
+  const limit=getBotanicalModuleCount(kind,count,candidates.length);
+  if(!limit)return[];
+  const spread=candidates
+    .map(entry=>({...entry,priority:hash(`${seed}:${kind}:${entry.index}`)}))
+    .sort((a,b)=>a.cluster.x-b.cluster.x||a.priority-b.priority);
+  const step=spread.length/limit;
+  return Array.from({length:limit},(_,index)=>spread[Math.min(spread.length-1,Math.floor((index+.5)*step))]);
+}
+function drawBotanicalModule(ctx,image,cluster,seed,widthFactor,filter='none',alpha=1,verticalAnchor=0){
+  const random=rng(seed),width=cluster.size*widthFactor,height=width*2/3,mirror=random()<.5?-1:1;
+  ctx.save();ctx.translate(cluster.x,cluster.y);ctx.rotate((random()-.5)*.48);ctx.scale(mirror,1);ctx.globalAlpha=alpha;ctx.filter=filter;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(image,-width/2,-height/2+height*verticalAnchor,width,height);ctx.restore();
+}
+function paintedFoliageFilter(season,shaded){
+  const seasonal=season==='Spring'?'brightness(1.08) saturate(.88)':season==='Autumn'?'sepia(.5) saturate(1.35) hue-rotate(342deg) brightness(.96)':'none';
+  return shaded?`${seasonal==='none'?'':seasonal+' '}brightness(.58) saturate(.76)`:seasonal;
+}
+function drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,species){
+  const count=getPaintedFoliageModuleCount(tree.profile?.stage,tree.leafCount||0,tree.clusters.length);
+  botanicalEntries(tree,seed,'foliage',count).forEach(({cluster,index})=>{const image=botanicalAsset(species,'foliage',seed,index);if(!image||((species==='Peach'||species==='Apricot'||species==='Pear'||species==='Cherry'||species==='Citrus')?!front:(cluster.z>.48)!==front))return;drawBotanicalModule(ctx,image,cluster,seed+index*701+91,tree.profile?.foliageScale||5.75,paintedFoliageFilter(season,shaded),shaded?.88:.94)});
+}
+function drawFoliage(ctx,tree,season,seed,player,front,shaded=false,species='Plum'){
+  if(season==='Winter')return;
+  const painted=botanicalAsset(species,'foliage',seed,0);if(painted){drawPaintedFoliage(ctx,tree,season,seed,player,front,shaded,species);return}
+}
+export function getFoliagePalette(season,shaded=false){if(shaded){if(season==='Spring')return['#587653','#476746','#39573d','#668059','#304b37'];if(season==='Autumn')return['#87662c','#744827','#63372c','#917332','#51352d'];return['#506d49','#405f41','#334f3a','#5d7650','#294333']}if(season==='Spring')return['#bdd58b','#9fc276','#7eaa68','#d5df9a','#6e985f'];if(season==='Autumn')return['#d4a334','#c4812f','#a95d32','#e0b744','#8d5034'];return['#9fbd68','#7fa65b','#668f54','#b6cc79','#4f784a']}
+export function getWoodPalette(bark,shaded=false){if(!shaded)return{bark,highlight:'rgba(201,177,127,.28)'};const hex=bark.replace('#',''),parts=[0,2,4].map(offset=>Math.round(parseInt(hex.slice(offset,offset+2),16)*.56).toString(16).padStart(2,'0'));return{bark:`#${parts.join('')}`,highlight:'rgba(113,105,82,.18)'}}
+
+function drawBlossoms(ctx,growth,seed,count,species){
+  if(count<=0||!growth?.leaves?.length)return;
+  const painted=botanicalAsset(species,'blossoms',seed,0);if(!painted)return;
+  paintedCanopyEntries(growth,seed+1907,'blossoms',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'blossoms',seed,index),cluster,seed+index*887+1907,4.15,'none',.96));
+}
+function drawFruit(ctx,growth,seed,count,species){
+  const painted=botanicalAsset(species,'fruit',seed,0);if(!painted)return;
+  paintedCanopyEntries(growth,seed+2701,'fruit',count).forEach(({cluster,index})=>drawBotanicalModule(ctx,botanicalAsset(species,'fruit',seed,index),cluster,seed+index*991+2701,2.75,'none',.97,.25));
+}
+
+export function getTreeLabelText(isPlayer,neighbor,state,stage,getRelationshipState){
+  if(!isPlayer&&neighbor?.dead){const phase=(neighbor.deathAge||0)>=4?'Stump':'Dead tree';return{relationName:'Dead',allied:false,primary:neighbor.species||'Tree',secondary:phase};}
+  const relationName=isPlayer?'You':neighbor?.offspring?'Offspring — Ally':(neighbor?.relationName||getRelationshipState(neighbor?.relation).name||(neighbor?.ally?'Ally':'Neutral')),
+        species=isPlayer?(state.selectedSpecies||'Tree'):(neighbor?.species||'Tree'),
+        stageName=isPlayer?stage:(neighbor?.stageName||'Sapling'),
+        allied=!isPlayer&&(neighbor?.offspring||getRelationshipState(neighbor?.relation).name==='Ally'),
+        hasHealth=allied&&Number.isFinite(neighbor?.health)&&Number.isFinite(neighbor?.maxHealth),
+        healthText=hasHealth?` · ♥ ${Math.max(0,neighbor.health)}/${neighbor.maxHealth}`:'';
+  return{relationName,allied,primary:isPlayer?`${species} — ${stageName}`:species,secondary:isPlayer?'(You)':`${stageName} · ${relationName}${healthText}`};
+}
+
+function drawLabel(ctx,x,y,isPlayer,neighbor,state,stage,getRelationshipState,rows){
+  if(!isPlayer&&!neighbor)return;
+  const label=getTreeLabelText(isPlayer,neighbor,state,stage,getRelationshipState),
+        displayWidth=ctx.canvas.clientWidth||ctx.canvas.width,
+        phoneScale=Math.max(1,Math.min(2.2,ctx.canvas.width/Math.max(1,displayWidth))),
+        primary=label.primary,
+        secondary=label.secondary,
+        primarySize=14*phoneScale,secondarySize=14*phoneScale,padX=7*phoneScale,
+        boxHeight=40*phoneScale,rowStep=45*phoneScale,gap=5*phoneScale;
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`600 ${primarySize}px sans-serif`;const primaryWidth=ctx.measureText(primary).width;
+  ctx.font=`${secondarySize}px sans-serif`;const secondaryWidth=ctx.measureText(secondary).width;
+  const boxWidth=Math.max(primaryWidth,secondaryWidth)+padX*2;
+  let centerX=Math.max(boxWidth/2+7,Math.min(ctx.canvas.width-boxWidth/2-7,x)),row=0;
+  while(row<rows.length&&centerX-boxWidth/2<rows[row]+gap)row+=1;
+  rows[row]=centerX+boxWidth/2;
+  const top=y+18*phoneScale+row*rowStep;
+  ctx.fillStyle=isPlayer?'rgba(30,25,20,.78)':'rgba(30,25,20,.58)';
+  ctx.strokeStyle=isPlayer?'rgba(255,255,255,.34)':'rgba(255,255,255,.18)';ctx.lineWidth=Math.max(1,phoneScale*.65);
+  ctx.beginPath();ctx.roundRect(centerX-boxWidth/2,top,boxWidth,boxHeight,6*phoneScale);ctx.fill();ctx.stroke();
+  ctx.font=`600 ${primarySize}px sans-serif`;ctx.fillStyle=isPlayer?'rgba(255,255,255,.98)':'rgba(255,255,255,.88)';ctx.fillText(primary,centerX,top+12*phoneScale);
+  ctx.font=`${secondarySize}px sans-serif`;
+  ctx.fillStyle=label.allied?'rgba(187,247,208,.95)':'rgba(255,255,255,.7)';
+  ctx.fillText(secondary,centerX,top+29*phoneScale);
+  ctx.restore();
+}
+function hash(value){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
