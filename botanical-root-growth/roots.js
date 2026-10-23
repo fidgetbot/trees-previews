@@ -1,9 +1,10 @@
-const profiles=[
+const profileTemplate=[
  {key:'sapling',name:'Sapling',cut:.65,count:5,spread:150,depth:155},
  {key:'young-tree',name:'Young tree',cut:.65,count:7,spread:180,depth:180},
  {key:'mature-tree',name:'Mature tree',cut:.63,count:9,spread:215,depth:200},
  {key:'ancient',name:'Ancient tree',cut:.61,count:11,spread:235,depth:210}
 ];
+let profiles=profileTemplate.map(p=>({...p})),plumProfiles=[];
 let stage=0,level=0,deep=0,focus=false,ready=false;
 const mix=(a,b,t)=>a+(b-a)*t;
 const point=(p,t)=>{const u=1-t,r=[0,1].map(k=>u*u*u*p[0][k]+3*u*u*t*p[1][k]+3*u*t*t*p[2][k]+t*t*t*p[3][k]);
@@ -17,7 +18,7 @@ function prepare(image,p){
  const span=spans.sort((a,b)=>(b[1]-b[0])-(a[1]-a[0]))[0];
  const cx=(span[0]+span[1])/2;const samples=[];for(let i=span[0]+2;i<span[1]-1;i++)if(data[i*4+3]>220)samples.push([data[i*4],data[i*4+1],data[i*4+2]]);
  const color=[0,1,2].map(k=>Math.round(samples.reduce((n,c)=>n+c[k],0)/samples.length));
- return {...p,image:c,cutY:y,cx,collar:span[1]-span[0]+1,color};
+ return {...p,image:c,cutY:y,paintY:Math.min(image.height,Math.round(y+image.height*.052)),cx,collar:span[1]-span[0]+1,color};
 }
 const rgb=(c,f=1)=>`rgb(${c.map(v=>Math.max(0,Math.min(255,Math.round(v*f)))).join(',')})`;
 function wood(ctx,curve,width,color,seed,material,progress=1,order=0){
@@ -38,10 +39,10 @@ const AXES=[
  {origin:.41,c1:[48,12],c2:[157,31],end:[226,73],weight:.27,birth:-2.2,layer:-1}
 ];
 function roots(p,investments){
- const stageIndex=profiles.indexOf(p);
+ const family=p.family||profiles,stageIndex=family.indexOf(p);
  const clock=stageIndex*6+investments/4+3;
- p=profiles[3]; // One lifetime scaffold, shared by every age painting.
- const collar=p.collar*260/p.cutY,anchorCollar=Math.min(...profiles.map(q=>q.collar*260/q.cutY)),nodes=[];
+ p=family[3]; // One lifetime scaffold, shared by every age painting.
+ const collar=p.collar*260/p.cutY,anchorCollar=Math.min(...family.map(q=>q.collar*260/q.cutY)),nodes=[];
  const random=n=>{const v=Math.sin(n*127.1+19.7)*43758.5453;return v-Math.floor(v);};
  function branch(curve,birth,duration,target,parent=null,at=0,order=0,seed=1,layer=0){
   const progress=clamp((clock-birth)/duration);if(progress<=0)return;
@@ -74,16 +75,15 @@ function draw(canvas,p,investment,depthGrowth,close=false){
  const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
  const w=rect.width,h=rect.height,ground=close?h*.16:h*.48;
  ctx.fillStyle='#302219';ctx.fillRect(0,0,w,ground);const earth=ctx.createLinearGradient(0,ground,0,h);earth.addColorStop(0,'#261d14');earth.addColorStop(1,'#17120d');ctx.fillStyle=earth;ctx.fillRect(0,ground,w,h-ground);ctx.strokeStyle='#80654666';ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(w,ground);ctx.stroke();
- const size=Math.min((w-24)/(profiles[3].spread*2+65),(h-ground-18)/(profiles[3].depth+90),close?10:(ground-14)/260);
+ const family=p.family||profiles,material=family[3];
+ const size=Math.min((w-24)/(material.spread*2+65),(h-ground-18)/(material.depth+90),close?10:(ground-14)/260);
  ctx.save();ctx.translate(w/2,ground);ctx.scale(size,size);
  const {nodes}=roots(p,investment);
  const collar=p.collar*260/p.cutY;
- const ordered=[...nodes].sort((a,b)=>a.layer-b.layer||b.order-a.order);for(const node of ordered)wood(ctx,node.curve,node.width,profiles[3].color,node.id,profiles[3],node.progress,node.order);
- ctx.fillStyle=rgb(p.color,.86);ctx.beginPath();ctx.moveTo(-collar*.53,-5);ctx.bezierCurveTo(-collar*.54,1,-collar*.43,7,-collar*.29,11);ctx.quadraticCurveTo(-collar*.13,7,0,12);ctx.quadraticCurveTo(collar*.14,7,collar*.30,11);ctx.bezierCurveTo(collar*.43,7,collar*.54,1,collar*.54,-5);ctx.closePath();ctx.fill();
- ctx.save();ctx.globalAlpha=.34;ctx.strokeStyle=rgb(p.color,1.35);ctx.lineWidth=Math.max(.35,collar*.026);ctx.lineCap='round';for(const offset of [-.32,-.14,.06,.25]){ctx.beginPath();ctx.moveTo(collar*offset,-4);ctx.quadraticCurveTo(collar*(offset+(offset<0?-.035:.035)),3,collar*(offset+(offset<0?-.09:.09)),9);ctx.stroke()}ctx.restore();
+ const ordered=[...nodes].sort((a,b)=>a.layer-b.layer||b.order-a.order);for(const node of ordered)wood(ctx,node.curve,node.width,material.color,node.id,material,node.progress,node.order);
  const soil=ctx.createLinearGradient(0,18,0,225);soil.addColorStop(0,'rgba(38,29,20,0)');soil.addColorStop(.52,'rgba(31,24,17,.05)');soil.addColorStop(1,'rgba(23,18,13,.15)');ctx.fillStyle=soil;ctx.fillRect(-250,12,500,225);
- // Source-rectangle cropping preserves every original pixel above this collar.
- const imgScale=260/p.cutY;ctx.drawImage(p.image,0,0,p.image.width,p.cutY,-p.cx*imgScale,-260,p.image.width*imgScale,260);
+ // Preserve the original trunk scale, but reveal a short band of its painted flare over the generated roots.
+ const imgScale=260/p.cutY;ctx.drawImage(p.image,0,0,p.image.width,p.paintY,-p.cx*imgScale,-260,p.image.width*imgScale,p.paintY*imgScale);
  ctx.restore();canvas.dataset.nodes=nodes.length;canvas.dataset.collar=collar;canvas.dataset.anchor=p.cx;canvas.dataset.scale=size;
 }
 let shown=0,frame=0,playing=false;
@@ -97,6 +97,7 @@ function render(){if(!ready)return;const p=profiles[stage];document.querySelecto
  document.querySelector('#next').disabled=stage>=3||level<24;
  document.querySelector('#handoff').hidden=stage===3;
  if(stage<3){draw(document.querySelector('#before'),p,24,0,true);draw(document.querySelector('#after'),profiles[stage+1],0,0,true);document.querySelector('#before-label').textContent=p.name+' · established';document.querySelector('#after-label').textContent=profiles[stage+1].name+' · starting';}
+ draw(document.querySelector('#cherry-preview'),profiles[2],24,0,true);draw(document.querySelector('#plum-preview'),plumProfiles[2],24,0,true);
  document.querySelector('#timeline').value=shown;
  document.querySelector('#play').textContent=playing?'Pause growth':'Play growth';
 }
@@ -111,6 +112,7 @@ document.querySelector('#grow').onclick=()=>setLevel(Math.min(24,level+1),true);
 document.querySelector('#play').onclick=()=>{if(playing){stop();level=Math.round(shown);shown=level;render();return;}stop();if(shown>=24)shown=0;playing=true;const from=shown,start=performance.now();function tick(now){shown=Math.min(24,from+(now-start)/950);level=Math.floor(shown);if(shown>=24)playing=false;render();if(playing)frame=requestAnimationFrame(tick);}frame=requestAnimationFrame(tick);};
 document.querySelector('#timeline').oninput=e=>setLevel(Number(e.target.value));
 document.querySelector('#reset').onclick=()=>setLevel(0);document.querySelector('#focus').onchange=e=>{focus=e.target.checked;render();};window.addEventListener('resize',render);
-try{await Promise.all(profiles.map(async(p,i)=>{const image=new Image();image.crossOrigin='anonymous';image.src=`https://fidgetbot.github.io/trees/assets/trees/cherry-${p.key}-v1.png`;await image.decode();profiles[i]=prepare(image,p);}));ready=true;render();}catch(error){document.querySelector('#status').textContent='Could not load tree artwork. Please refresh.';console.error(error);}
+async function loadFamily(species){const family=await Promise.all(profileTemplate.map(async p=>{const image=new Image();image.crossOrigin='anonymous';image.src=`https://fidgetbot.github.io/trees/assets/trees/${species}-${p.key}-v1.png`;await image.decode();return prepare(image,p);}));family.forEach(p=>p.family=family);return family;}
+try{[profiles,plumProfiles]=await Promise.all([loadFamily('cherry'),loadFamily('plum')]);ready=true;render();}catch(error){document.querySelector('#status').textContent='Could not load tree artwork. Please refresh.';console.error(error);}
 // Read-only review hooks for checking connected, persistent geometry.
 window.rootStudy={getGeometry:(s,n,d)=>roots(profiles[s],n,d),getState:()=>({stage,level,shown,playing,ready})};
