@@ -1,6 +1,6 @@
 # Playable painted-root review
 
-[Open with review controls](https://fidgetbot.github.io/trees-previews/playable-root-joins/?review=1) · [normal Seed opening](https://fidgetbot.github.io/trees-previews/playable-root-joins/) · [source commit](https://github.com/fidgetbot/trees/commit/5467a49)
+[Open with review controls](https://fidgetbot.github.io/trees-previews/playable-root-joins/?review=1) · [normal Seed opening](https://fidgetbot.github.io/trees-previews/playable-root-joins/) · [source commit](https://github.com/fidgetbot/trees/commit/62ccb38)
 
 Use **Root review · controls** to load any species, stage and season. Close the panel and spend resources with the normal **Extend Root** and **Deepen Roots** actions. **Meet requirements & age up** supplies the current milestone requirements, then runs the game's real transition while retaining root investments. It is a review shortcut, not a change to ordinary game rules.
 
