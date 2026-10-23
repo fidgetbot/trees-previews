@@ -1,0 +1,242 @@
+[
+  {
+    "id": "cherry-sapling",
+    "species": "cherry",
+    "stage": "sapling",
+    "label": "Sapling",
+    "cut": 0.65,
+    "master": "./assets/source/cherry-sapling-master.png",
+    "patch": "./assets/patches/cherry-sapling.png",
+    "status": "candidate"
+  },
+  {
+    "id": "cherry-young-tree",
+    "species": "cherry",
+    "stage": "young-tree",
+    "label": "Young",
+    "cut": 0.65,
+    "master": "./assets/source/cherry-young-tree-master.png",
+    "patch": "./assets/patches/cherry-young-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "cherry-mature-tree",
+    "species": "cherry",
+    "stage": "mature-tree",
+    "label": "Mature",
+    "cut": 0.63,
+    "master": "./assets/source/cherry-mature-tree-master.png",
+    "patch": "../cherry-root-join/assets/cherry-join-patch.png",
+    "status": "approved"
+  },
+  {
+    "id": "cherry-ancient",
+    "species": "cherry",
+    "stage": "ancient",
+    "label": "Ancient",
+    "cut": 0.61,
+    "master": "./assets/source/cherry-ancient-master.png",
+    "patch": "./assets/patches/cherry-ancient.png",
+    "status": "candidate"
+  },
+  {
+    "id": "plum-sapling",
+    "species": "plum",
+    "stage": "sapling",
+    "label": "Sapling",
+    "cut": 0.65,
+    "master": "./assets/source/plum-sapling-master.png",
+    "patch": "./assets/patches/plum-sapling.png",
+    "status": "candidate"
+  },
+  {
+    "id": "plum-young-tree",
+    "species": "plum",
+    "stage": "young-tree",
+    "label": "Young",
+    "cut": 0.65,
+    "master": "./assets/source/plum-young-tree-master.png",
+    "patch": "./assets/patches/plum-young-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "plum-mature-tree",
+    "species": "plum",
+    "stage": "mature-tree",
+    "label": "Mature",
+    "cut": 0.63,
+    "master": "./assets/source/plum-mature-tree-master.png",
+    "patch": "./assets/patches/plum-mature-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "plum-ancient",
+    "species": "plum",
+    "stage": "ancient",
+    "label": "Ancient",
+    "cut": 0.61,
+    "master": "./assets/source/plum-ancient-master.png",
+    "patch": "./assets/patches/plum-ancient.png",
+    "status": "candidate"
+  },
+  {
+    "id": "apricot-sapling",
+    "species": "apricot",
+    "stage": "sapling",
+    "label": "Sapling",
+    "cut": 0.65,
+    "master": "./assets/source/apricot-sapling-master.png",
+    "patch": "./assets/patches/apricot-sapling.png",
+    "status": "candidate"
+  },
+  {
+    "id": "apricot-young-tree",
+    "species": "apricot",
+    "stage": "young-tree",
+    "label": "Young",
+    "cut": 0.65,
+    "master": "./assets/source/apricot-young-tree-master.png",
+    "patch": "./assets/patches/apricot-young-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "apricot-mature-tree",
+    "species": "apricot",
+    "stage": "mature-tree",
+    "label": "Mature",
+    "cut": 0.63,
+    "master": "./assets/source/apricot-mature-tree-master.png",
+    "patch": "./assets/patches/apricot-mature-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "apricot-ancient",
+    "species": "apricot",
+    "stage": "ancient",
+    "label": "Ancient",
+    "cut": 0.61,
+    "master": "./assets/source/apricot-ancient-master.png",
+    "patch": "./assets/patches/apricot-ancient.png",
+    "status": "candidate"
+  },
+  {
+    "id": "peach-sapling",
+    "species": "peach",
+    "stage": "sapling",
+    "label": "Sapling",
+    "cut": 0.65,
+    "master": "./assets/source/peach-sapling-master.png",
+    "patch": "./assets/patches/peach-sapling.png",
+    "status": "candidate"
+  },
+  {
+    "id": "peach-young-tree",
+    "species": "peach",
+    "stage": "young-tree",
+    "label": "Young",
+    "cut": 0.65,
+    "master": "./assets/source/peach-young-tree-master.png",
+    "patch": "./assets/patches/peach-young-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "peach-mature-tree",
+    "species": "peach",
+    "stage": "mature-tree",
+    "label": "Mature",
+    "cut": 0.63,
+    "master": "./assets/source/peach-mature-tree-master.png",
+    "patch": "./assets/patches/peach-mature-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "peach-ancient",
+    "species": "peach",
+    "stage": "ancient",
+    "label": "Ancient",
+    "cut": 0.61,
+    "master": "./assets/source/peach-ancient-master.png",
+    "patch": "./assets/patches/peach-ancient.png",
+    "status": "candidate"
+  },
+  {
+    "id": "pear-sapling",
+    "species": "pear",
+    "stage": "sapling",
+    "label": "Sapling",
+    "cut": 0.65,
+    "master": "./assets/source/pear-sapling-master.png",
+    "patch": "./assets/patches/pear-sapling.png",
+    "status": "candidate"
+  },
+  {
+    "id": "pear-young-tree",
+    "species": "pear",
+    "stage": "young-tree",
+    "label": "Young",
+    "cut": 0.65,
+    "master": "./assets/source/pear-young-tree-master.png",
+    "patch": "./assets/patches/pear-young-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "pear-mature-tree",
+    "species": "pear",
+    "stage": "mature-tree",
+    "label": "Mature",
+    "cut": 0.63,
+    "master": "./assets/source/pear-mature-tree-master.png",
+    "patch": "./assets/patches/pear-mature-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "pear-ancient",
+    "species": "pear",
+    "stage": "ancient",
+    "label": "Ancient",
+    "cut": 0.61,
+    "master": "./assets/source/pear-ancient-master.png",
+    "patch": "./assets/patches/pear-ancient.png",
+    "status": "candidate"
+  },
+  {
+    "id": "citrus-sapling",
+    "species": "citrus",
+    "stage": "sapling",
+    "label": "Sapling",
+    "cut": 0.65,
+    "master": "./assets/source/citrus-sapling-master.png",
+    "patch": "./assets/patches/citrus-sapling.png",
+    "status": "candidate"
+  },
+  {
+    "id": "citrus-young-tree",
+    "species": "citrus",
+    "stage": "young-tree",
+    "label": "Young",
+    "cut": 0.65,
+    "master": "./assets/source/citrus-young-tree-master.png",
+    "patch": "./assets/patches/citrus-young-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "citrus-mature-tree",
+    "species": "citrus",
+    "stage": "mature-tree",
+    "label": "Mature",
+    "cut": 0.63,
+    "master": "./assets/source/citrus-mature-tree-master.png",
+    "patch": "./assets/patches/citrus-mature-tree.png",
+    "status": "candidate"
+  },
+  {
+    "id": "citrus-ancient",
+    "species": "citrus",
+    "stage": "ancient",
+    "label": "Ancient",
+    "cut": 0.61,
+    "master": "./assets/source/citrus-ancient-master.png",
+    "patch": "./assets/patches/citrus-ancient.png",
+    "status": "candidate"
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "id": "cherry-sapling",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "cherry-sapling.png",
+      "mimeType": "image/png",
+      "size": 1583473,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied 1024x1024 image in place as a precise LOCAL game-asset retouch, not a new illustration. Output exactly 1024x1024. Preserve all pixels outside the central trunk/root junction, especially trunk above y=250, roots and twigs below y=660, and all root geometry at left and right borders. Retouch only within approximately x=185..845,y=250..620, using a close-fitting local edit footprint. Keep exact flat background #281d15. Repair the conspicuous straight horizontal trunk cutoff at y=447, polygonal collar, and pasted strips into anatomically continuous asymmetric slender cherry SAPLING root flare. Match the source reddish copper-brown bark, fine horizontal lenticels, grain, soft painterly texture, existing highlights, shadows, lighting and scale. Upper trunk must remain unchanged. Blend trunk gradually into the EXISTING five roots: left shallow, lower-left diagonal, descending slightly right of center, lower-right diagonal, and right shallow. Preserve their precise outgoing centerlines, widths, directions, twigs and positions at boundaries of local edit. No additional roots or branches. Root junction should have gently rounded irregular crotches and natural dark background negative spaces separating individually tapering roots; continuous organic wood with bark flowing through branch points, not a flat polygon cap or cluster of tubes. Remove hard horizontal seams, squared ends, abrupt width jumps and geometric pasted collar, including pasted bark strip discontinuities inside edit. Keep sapling young and slender rather than massive or ancient. Do not change source composition or invent soil, ground, haze, vignette, labels or any other elements. All nonjunction areas remain identical to the supplied image."
+    }
+  ],
+  "attempts": []
+}

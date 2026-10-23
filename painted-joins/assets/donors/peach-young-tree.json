@@ -1,0 +1,16 @@
+{
+  "id": "peach-young-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "peach-young-tree.png",
+      "mimeType": "image/png",
+      "size": 1659000,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Precisely locally retouch the provided 1024x1024 peach tree Young-stage game asset. Output same 1024x1024 canvas. Use original image as edit source, not a newly drawn tree. All pixels outside central junction approximately x185..845 y250..620 must remain unchanged, especially trunk above y250, all roots and twigs below y660, and roots at both borders. Retain exact flat #281d15 background without ground or other additions. Repair hard horizontal trunk cutoff at y447 and pasted mismatched root strips only in junction. Form continuous organic young peach wood, modest asymmetric slender root flare matching source copper reddish tan bark, cream grain highlights, knots, shading, softness and painted botanical rendering. Preserve upper trunk silhouette and lighting. Blend trunk gradually and naturally into exactly five EXISTING root paths: shallow leftward, diagonally lower-left, descending just right of center, diagonally lower-right, shallow rightward. Match original root widths, centerlines, directions exactly at boundary of retouch. Keep all existing outgoing roots and twigs in original positions. Eliminate horizontal cut, squared ends, abrupt steps, strip seams and geometric collar. Rounded individually tapering roots should emerge from continuous trunk with organic dark negative spaces between them; not a polygon cap, not a bundle of tubes. Do not add any roots or branches, or change tree age/species. This is a restrained localized seam repair, preserve the original asset everywhere else."
+    }
+  ],
+  "attempts": []
+}

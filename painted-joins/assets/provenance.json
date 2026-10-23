@@ -1,0 +1,602 @@
+{
+  "date": "2026-10-23",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "originalsPreserved": true,
+  "productionChanged": false,
+  "records": [
+    {
+      "id": "cherry-sapling",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/cherry-sapling-master.png",
+        "sha256": "8440cf0134426155db129fe9544f8539bb49c40c322aab6a8bcca52533935853",
+        "source": "trees/assets/trees/cherry-sapling-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/cherry-sapling.png",
+        "sha256": "614e5bcef5058aa21852d8041842644574ee255a29ec0f2b3212846f77ea6bb9"
+      },
+      "patch": {
+        "path": "./assets/patches/cherry-sapling.png",
+        "sha256": "deba324b07e31cb8c7a09e981a28eda8f2307af38847ba870e22d9c1a12582e4"
+      },
+      "donor": {
+        "path": "assets/donors/cherry-sapling.png",
+        "sha256": "3474b35b61affbd55f08e6544784bcf4875922f399f0327cbf66bf4f0551c46b"
+      },
+      "prompt": {
+        "path": "assets/prompts/cherry-sapling.txt",
+        "sha256": "74783715e294d9827612d1d3ab9d4d9013a635a36ca6f7fa9b5d640fadbe950c"
+      }
+    },
+    {
+      "id": "cherry-young-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/cherry-young-tree-master.png",
+        "sha256": "a8e18220676eda6a127080365aeffe75305916115c9bfe60cc017d048cf71a12",
+        "source": "trees/assets/trees/cherry-young-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/cherry-young-tree.png",
+        "sha256": "29fb6c47b983c50a94b9a464aafcce943d7727c62b923709dd40c7f71c13bbcc"
+      },
+      "patch": {
+        "path": "./assets/patches/cherry-young-tree.png",
+        "sha256": "3043f35256e4e647e00487d8fbffc64bbd6f67e4880f70c00ecbaade47911dc5"
+      },
+      "donor": {
+        "path": "assets/donors/cherry-young-tree.png",
+        "sha256": "417ae33ae5dbc6f1a12148e9f90eeae2e2961c00087eaaed0d5f7e157fbacaaf"
+      },
+      "prompt": {
+        "path": "assets/prompts/cherry-young-tree.txt",
+        "sha256": "c3956afe189e1640d2959d44d9d09e7ff95e22796dc3be8ab12039fd07b194f4"
+      }
+    },
+    {
+      "id": "cherry-mature-tree",
+      "status": "approved",
+      "master": {
+        "path": "./assets/source/cherry-mature-tree-master.png",
+        "sha256": "8c753f01d6986103247c29d5950a6d5995e1db275adf388d4779da467cdee245",
+        "source": "trees/assets/trees/cherry-mature-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/cherry-mature-tree.png",
+        "sha256": "b19355cec3b8fda26c643cc781cb567d7f5869514a758b26af8fc557f16c5630"
+      },
+      "patch": {
+        "path": "../cherry-root-join/assets/cherry-join-patch.png",
+        "sha256": "9269373262d8883580a922224e9019569f82108049d6158ea3f39aa786f88f6b"
+      },
+      "origin": "../cherry-root-join/assets/source/README.md"
+    },
+    {
+      "id": "cherry-ancient",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/cherry-ancient-master.png",
+        "sha256": "fbd6d98935fc3a73328c50050c26fac5848756bfb36662ffb737d716a74547ed",
+        "source": "trees/assets/trees/cherry-ancient-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/cherry-ancient.png",
+        "sha256": "a61fbcc7deecacb0ed778701528712690123a7dc90c8087d66b618f581dc6090"
+      },
+      "patch": {
+        "path": "./assets/patches/cherry-ancient.png",
+        "sha256": "758293226e9e5c58a377d76801f81e1e26aa22f7d1521cf843b4bebcd77ed176"
+      },
+      "donor": {
+        "path": "assets/donors/cherry-ancient.png",
+        "sha256": "f47c3bfdcac2bba1da737327495771f7c4a218208f756135641845bc34fd0c56"
+      },
+      "prompt": {
+        "path": "assets/prompts/cherry-ancient.txt",
+        "sha256": "37a382250e2066b47276bf23a345ae90b586868ef04105b9353eba824a0b7b39"
+      }
+    },
+    {
+      "id": "plum-sapling",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/plum-sapling-master.png",
+        "sha256": "f866e6bf77bd5efb9cb25559cd6dfb7bda2aa6c25eb2a5bc3ea3b80c1ce09756",
+        "source": "trees/assets/trees/plum-sapling-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/plum-sapling.png",
+        "sha256": "985c315ff628c8faccb6db642ebe1cdcad1843633cd21ca7252a973e99c2fc5b"
+      },
+      "patch": {
+        "path": "./assets/patches/plum-sapling.png",
+        "sha256": "26684507b5ad81c3f0c12e4960f5da04ea17e39857bb56c7725909a45e009f80"
+      },
+      "donor": {
+        "path": "assets/donors/plum-sapling.png",
+        "sha256": "bfe9e7e887d81e9c87d44fd5db644dd56674b2f7fc4763f3d91a89dae17de5f1"
+      },
+      "prompt": {
+        "path": "assets/prompts/plum-sapling.txt",
+        "sha256": "58bd12f957a9d3ca5281f9a5ce2e1705bbdd29dd552706745533715c9c7bd844"
+      }
+    },
+    {
+      "id": "plum-young-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/plum-young-tree-master.png",
+        "sha256": "11766ef8fd98a7d02b013082fbcf51a92e02c60622a5e62357c967c93b0043c6",
+        "source": "trees/assets/trees/plum-young-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/plum-young-tree.png",
+        "sha256": "b6ab92cf96ccd4cd8e586807ecf8aa29843a7f1659d299eacbc0cdf8e1e30c48"
+      },
+      "patch": {
+        "path": "./assets/patches/plum-young-tree.png",
+        "sha256": "9727d673e09651922f48f82d2a048d68697d81e24158b9fa19333198884fd748"
+      },
+      "donor": {
+        "path": "assets/donors/plum-young-tree.png",
+        "sha256": "54a2d3faffe9fd1b90b2b301dd0d77c3b2b61bdcf2584e9cd07f87fd0097538e"
+      },
+      "prompt": {
+        "path": "assets/prompts/plum-young-tree.txt",
+        "sha256": "06a7126d30256c5a063f9fd015b110f3f69a7d36d270dbaf886b94fd611df5b0"
+      }
+    },
+    {
+      "id": "plum-mature-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/plum-mature-tree-master.png",
+        "sha256": "a235c6548697b0ee0080952c6562522acbb438d00967d3a72fb82fd739800565",
+        "source": "trees/assets/trees/plum-mature-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/plum-mature-tree.png",
+        "sha256": "1d1fb81522ae5449d4b90b60f0c10e7babc5882db572de8892093f2fc5f2112e"
+      },
+      "patch": {
+        "path": "./assets/patches/plum-mature-tree.png",
+        "sha256": "334bf9d0c31f3945486c26ca96d88d900e2807b16ea6b500533c730bf1dca507"
+      },
+      "donor": {
+        "path": "assets/donors/plum-mature-tree.png",
+        "sha256": "4b047e7fd9eb2be08bbafd6403220821c8b4f95e3100abacb502ac8019c36c01"
+      },
+      "prompt": {
+        "path": "assets/prompts/plum-mature-tree.txt",
+        "sha256": "f709b8560f86a49d0fb4c3d235cf71ee863680888b39adea7aa98eab944fcc53"
+      }
+    },
+    {
+      "id": "plum-ancient",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/plum-ancient-master.png",
+        "sha256": "30413a9623c8ad46747d39e87e2a57274227db2506a4ef7d0412be5fae3a4a57",
+        "source": "trees/assets/trees/plum-ancient-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/plum-ancient.png",
+        "sha256": "17a9c70fdd47e17532340dc27f4e2e553bee5092cfffafeeb8ae8c5a850da968"
+      },
+      "patch": {
+        "path": "./assets/patches/plum-ancient.png",
+        "sha256": "821a386a87f91d06a4d8c428e5b7c43e3acd1a83ebb7d89aea55d8bd01a9084b"
+      },
+      "donor": {
+        "path": "assets/donors/plum-ancient.png",
+        "sha256": "2704f44bb80dbec4666467a98e657066ae9dabe4189fb88dab08634ae3648017"
+      },
+      "prompt": {
+        "path": "assets/prompts/plum-ancient.txt",
+        "sha256": "23440114752e5414f63bb2691db7a1487c5c6496e58bebb50d2ff72d7de34689"
+      }
+    },
+    {
+      "id": "apricot-sapling",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/apricot-sapling-master.png",
+        "sha256": "d4ddd39c0c912353c10e003c8c5bec8f1c40d7a7fa76f1f816349f26fe0fadbc",
+        "source": "trees/assets/trees/apricot-sapling-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/apricot-sapling.png",
+        "sha256": "375c53577fb29ef9057f8449e62dab1a5575cdb81eab462e78dae066468acf2c"
+      },
+      "patch": {
+        "path": "./assets/patches/apricot-sapling.png",
+        "sha256": "fff919bfdd37c2b19a4551c6e3d83614ef02d162fcdbff5fa6c211a00c2a70ef"
+      },
+      "donor": {
+        "path": "assets/donors/apricot-sapling.png",
+        "sha256": "829dca36a44cbe559049e764c97032db94a6f292e9c2e00f28bb5e05972e91f2"
+      },
+      "prompt": {
+        "path": "assets/prompts/apricot-sapling.txt",
+        "sha256": "5edc4b7e3f02b302dc9a1179fbd9f3bb5dc119db78b3cd5f81d9c12e476c11a6"
+      }
+    },
+    {
+      "id": "apricot-young-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/apricot-young-tree-master.png",
+        "sha256": "c7dce99e2ac71a4866f7ce5c27d4df998856a5254bd94a129179632d5c42eb15",
+        "source": "trees/assets/trees/apricot-young-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/apricot-young-tree.png",
+        "sha256": "6992479becb626344c814f177c73d8be3c1c4b4f417ed34f07ad3b8aaa698e06"
+      },
+      "patch": {
+        "path": "./assets/patches/apricot-young-tree.png",
+        "sha256": "742429f085d92f6f0556b861771c5ecc87808194ef4ce7baf041f0eebc914116"
+      },
+      "donor": {
+        "path": "assets/donors/apricot-young-tree.png",
+        "sha256": "7e9d6513a4d847b322750e11523ce0208c617a2f16399e49ade3b16f55075907"
+      },
+      "prompt": {
+        "path": "assets/prompts/apricot-young-tree.txt",
+        "sha256": "33a01d3fbe57782f610cbee1678976318283c5ea49de45903400c98166fef5e1"
+      }
+    },
+    {
+      "id": "apricot-mature-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/apricot-mature-tree-master.png",
+        "sha256": "edc5246a6950c304380a772c014cc092544b4533fd534250bf29e020e06b23c9",
+        "source": "trees/assets/trees/apricot-mature-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/apricot-mature-tree.png",
+        "sha256": "524b1e923a64c44ec790aded40fd3f98f899e609ae57f94412048ab3b99c5788"
+      },
+      "patch": {
+        "path": "./assets/patches/apricot-mature-tree.png",
+        "sha256": "a2cf56ab75bb4ece8634bb3856ff2e05742db329e042088b663e5dcd43b5c86e"
+      },
+      "donor": {
+        "path": "assets/donors/apricot-mature-tree.png",
+        "sha256": "d9581dc59896654e2acd0c3829a229a21f12f2d610e7fbf05d04a685ba788ded"
+      },
+      "prompt": {
+        "path": "assets/prompts/apricot-mature-tree.txt",
+        "sha256": "92b0811848e2270b8703c6839633a9eaaa2493ac75bba98703cd69bf63e30cc6"
+      }
+    },
+    {
+      "id": "apricot-ancient",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/apricot-ancient-master.png",
+        "sha256": "f39e2552571a220ab96958b58347ff1d38ddfc373c38403b07bb4e0f08f496d1",
+        "source": "trees/assets/trees/apricot-ancient-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/apricot-ancient.png",
+        "sha256": "4df160a3002c2c54e95b85cea45914b40fcde6e87b88683c7133c17fb7befcc8"
+      },
+      "patch": {
+        "path": "./assets/patches/apricot-ancient.png",
+        "sha256": "9d8d7a65ac4076cf3c3ccba3f1eeeb95aa6e25835066b08cb51bc3ca82de530a"
+      },
+      "donor": {
+        "path": "assets/donors/apricot-ancient.png",
+        "sha256": "9ad2a3d9719a271309839308577089bdb61b683cd2eda81b28602dc91d0c6e41"
+      },
+      "prompt": {
+        "path": "assets/prompts/apricot-ancient.txt",
+        "sha256": "2802c11ab89ce106d1a81c2cb7e5b4965ef0a674cc7cfb2d5c0aa04454b705ae"
+      }
+    },
+    {
+      "id": "peach-sapling",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/peach-sapling-master.png",
+        "sha256": "b680caa116ae0d6d6a4503fa844465e6cae4d5bdb9b6199a14ddf2cb6d7589cf",
+        "source": "trees/assets/trees/peach-sapling-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/peach-sapling.png",
+        "sha256": "a0d0eb4533509d4b80dcc2490f9276bdd0f22ce13efdac7bcf2303304ca494c8"
+      },
+      "patch": {
+        "path": "./assets/patches/peach-sapling.png",
+        "sha256": "50530b6f8e21ba8b3203e801ffa8dda00e60753fc894a600af5d0d6deebb3f92"
+      },
+      "donor": {
+        "path": "assets/donors/peach-sapling.png",
+        "sha256": "ee9a88b8b92169b8effe58aba49fa8db44cdf429bb78598c85f3f5d4331afde8"
+      },
+      "prompt": {
+        "path": "assets/prompts/peach-sapling.txt",
+        "sha256": "40d5c0a9fa799240618d422597de665c41440ce3c65252e3d77b0cd44b920507"
+      }
+    },
+    {
+      "id": "peach-young-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/peach-young-tree-master.png",
+        "sha256": "76cb98081e319f09e966f731929a24a372a5679d0412dbe38a06022080a8432e",
+        "source": "trees/assets/trees/peach-young-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/peach-young-tree.png",
+        "sha256": "30ba8d548d59bbe0ddfdb11a11ddcfb8ee7d1ef51fe35f2bcdb4d74969a389cb"
+      },
+      "patch": {
+        "path": "./assets/patches/peach-young-tree.png",
+        "sha256": "638a67eb771442885086ba094a11a1a1b7eb52b2897cec68a1687ff6d4344560"
+      },
+      "donor": {
+        "path": "assets/donors/peach-young-tree.png",
+        "sha256": "6ab5089a2e2b0e9112768096f2910addc977b02e91912c9df2957511942b5f50"
+      },
+      "prompt": {
+        "path": "assets/prompts/peach-young-tree.txt",
+        "sha256": "b655725b3e4a67135af313f0ea20c73409e180ecbb539f087a138b43361e9abf"
+      }
+    },
+    {
+      "id": "peach-mature-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/peach-mature-tree-master.png",
+        "sha256": "bb59be131b66c19c2e9b70f7d0183eb6df479caf07639a1f89df3fb8acc7de99",
+        "source": "trees/assets/trees/peach-mature-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/peach-mature-tree.png",
+        "sha256": "e09d650774f1d0ea44059e0ae1afb3854858083b48d5295ac3dfb29a1acb2a9e"
+      },
+      "patch": {
+        "path": "./assets/patches/peach-mature-tree.png",
+        "sha256": "a7cbc725447ddf0ed429e914a641a2552f010c820901d0a70d1d107c074e816c"
+      },
+      "donor": {
+        "path": "assets/donors/peach-mature-tree.png",
+        "sha256": "01be9752bbad4fd3164b66e4c82a0c9030dfc7fe68bb93cc17ada0e2860d05de"
+      },
+      "prompt": {
+        "path": "assets/prompts/peach-mature-tree.txt",
+        "sha256": "163af36298e196abc27818050f99b79dd16d0be1d082e306e2990c1f16428033"
+      }
+    },
+    {
+      "id": "peach-ancient",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/peach-ancient-master.png",
+        "sha256": "397750c85d6e069dfc8e2ec1cc4f8a8123766f045453492552d20698b067b798",
+        "source": "trees/assets/trees/peach-ancient-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/peach-ancient.png",
+        "sha256": "edca12f3e4ef025377c685aea37a1c61732397693d3f279157f4824d2a7d9a8d"
+      },
+      "patch": {
+        "path": "./assets/patches/peach-ancient.png",
+        "sha256": "2051152d54e31651cc1071bc6bbdd95b281edc4ee7bf3ea784d6f70855152533"
+      },
+      "donor": {
+        "path": "assets/donors/peach-ancient.png",
+        "sha256": "604a0634cfbef768ab0a4f2f7e128f3872ce9c574ba90c8704213111a88aa1b1"
+      },
+      "prompt": {
+        "path": "assets/prompts/peach-ancient.txt",
+        "sha256": "2ff2bb5e7725d110906c535b944cf79239edbeb3157d810cbe7a04f5a08e975c"
+      }
+    },
+    {
+      "id": "pear-sapling",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/pear-sapling-master.png",
+        "sha256": "b3feed39331f1096b022ed234487b54c787b2a6b81bfcdef469e267a411986b3",
+        "source": "trees/assets/trees/pear-sapling-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/pear-sapling.png",
+        "sha256": "43469227198451a5802f7290373195f1fe43aa185983dd3332c1320fa7a9c8d0"
+      },
+      "patch": {
+        "path": "./assets/patches/pear-sapling.png",
+        "sha256": "2321cd538ec0547690aba7daedd646e2fdbe41bf53749822d290dc4f9c4f601b"
+      },
+      "donor": {
+        "path": "assets/donors/pear-sapling.png",
+        "sha256": "96c9597047a66afe3bdac9e9a9b3f526c8696ae73d97401dbda2a97e3483fc53"
+      },
+      "prompt": {
+        "path": "assets/prompts/pear-sapling.txt",
+        "sha256": "0a4956a690a7a30439a5f587c2b34a8cba579dbbf3bd96af1536b845a201c4a8"
+      }
+    },
+    {
+      "id": "pear-young-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/pear-young-tree-master.png",
+        "sha256": "1b04c59220a4b68e41e9f3f134f00a2b669bf50d93b1ff8c0c5b43ae7cb55436",
+        "source": "trees/assets/trees/pear-young-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/pear-young-tree.png",
+        "sha256": "dbdfccd2d1c63acffcafc4cac27fee45b7b0f8df8d32c1057691dad99e58037b"
+      },
+      "patch": {
+        "path": "./assets/patches/pear-young-tree.png",
+        "sha256": "9a6e97b4613830b3c1b0735d12b1830ae0649a943a65a37f17e8b15c904c92e3"
+      },
+      "donor": {
+        "path": "assets/donors/pear-young-tree.png",
+        "sha256": "fd4be1cdef8458b2b72a60b2031835ad470cccf1cb5ce1e7d7828e2bbd8e74d0"
+      },
+      "prompt": {
+        "path": "assets/prompts/pear-young-tree.txt",
+        "sha256": "a9f9c9e53c2211f92590f2725ad9c3dacce8274583c6ad51ce5a91c78296e4ba"
+      }
+    },
+    {
+      "id": "pear-mature-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/pear-mature-tree-master.png",
+        "sha256": "d98306ae539f6b680c077c8166b398281546b588d7eaef862f876baf4d42560c",
+        "source": "trees/assets/trees/pear-mature-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/pear-mature-tree.png",
+        "sha256": "005de5b78f6df37424cc62e1ef9e8337da4b957b493692162e0256461f3c1758"
+      },
+      "patch": {
+        "path": "./assets/patches/pear-mature-tree.png",
+        "sha256": "2348f267e441e3b57829c98dcd6ce34f9c0e949dda82b0fe945c444ce41f4e77"
+      },
+      "donor": {
+        "path": "assets/donors/pear-mature-tree.png",
+        "sha256": "bbc3c1b284fc59baad37c272c3331b503deae25c42067beb5e966c3d54c8ed83"
+      },
+      "prompt": {
+        "path": "assets/prompts/pear-mature-tree.txt",
+        "sha256": "7586d2bd1f805b812d2c9f5df04f2a219b831f1553fb0515113e1a8a03f4c9be"
+      }
+    },
+    {
+      "id": "pear-ancient",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/pear-ancient-master.png",
+        "sha256": "679240dc46130e065b802e202450ba4d6def655ac46a6aa9a5d86754b7b32204",
+        "source": "trees/assets/trees/pear-ancient-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/pear-ancient.png",
+        "sha256": "bf9ca358b04e90f5ec7b0c7d31405b5603b5d928d22e73568c1865efb9e67343"
+      },
+      "patch": {
+        "path": "./assets/patches/pear-ancient.png",
+        "sha256": "9fa2ac30661c68bd3539342bff0e5d42d886ffd6a3b99637080ca23473d3c56e"
+      },
+      "donor": {
+        "path": "assets/donors/pear-ancient.png",
+        "sha256": "94230fd04a1dddcc42dfa2536ee22058bacb81d1a417524bf938fa8baf63b6ca"
+      },
+      "prompt": {
+        "path": "assets/prompts/pear-ancient.txt",
+        "sha256": "c899fc06075fc3a762f4230de4e9e5ebeb550065c44ac8082b62847f61ad8847"
+      }
+    },
+    {
+      "id": "citrus-sapling",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/citrus-sapling-master.png",
+        "sha256": "529121950e95c92d2a7e998d3622593be44e0363df536daeef469caef7be6ccd",
+        "source": "trees/assets/trees/citrus-sapling-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/citrus-sapling.png",
+        "sha256": "b151b49aba4e4e765845d2a6d242c18a298aa300c16fe81b42abb83da80405bc"
+      },
+      "patch": {
+        "path": "./assets/patches/citrus-sapling.png",
+        "sha256": "165efd5816ce08731905a26f4d35eb286217bb426519c70cd0438492f211d8f6"
+      },
+      "donor": {
+        "path": "assets/donors/citrus-sapling.png",
+        "sha256": "6e2ca4081ce50e0eb3573785d956b36f47925c03c758549de4c6508c334d6205"
+      },
+      "prompt": {
+        "path": "assets/prompts/citrus-sapling.txt",
+        "sha256": "2796a3f0589f91b3393313364f99d1c64adc2845433b192460a69616a54b599e"
+      }
+    },
+    {
+      "id": "citrus-young-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/citrus-young-tree-master.png",
+        "sha256": "93d7ae013a905304c85e93e7aa63e729d42b2fe4d5ae8dc3034c2cbdc32b25ed",
+        "source": "trees/assets/trees/citrus-young-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/citrus-young-tree.png",
+        "sha256": "631453af79322e53b099271fd82bced44554a8e1b57c9cfdfafc0e4c851827e6"
+      },
+      "patch": {
+        "path": "./assets/patches/citrus-young-tree.png",
+        "sha256": "53852c5c1ee290c7b45804a8f6325ccf015a2e161227bed7e7d8c2b081e4edd5"
+      },
+      "donor": {
+        "path": "assets/donors/citrus-young-tree.png",
+        "sha256": "2e39c7a6822def91d9279e07026649d202db3719f622f02739458c3d369fe01b"
+      },
+      "prompt": {
+        "path": "assets/prompts/citrus-young-tree.txt",
+        "sha256": "2a4d500bb26cc30cbbd9c2cff903341556aca97c99950fe2768b0945629d5eb8"
+      }
+    },
+    {
+      "id": "citrus-mature-tree",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/citrus-mature-tree-master.png",
+        "sha256": "0d4e202a924bb0397a1ac740788688f344a2c5ca5380944345990ed2c718664d",
+        "source": "trees/assets/trees/citrus-mature-tree-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/citrus-mature-tree.png",
+        "sha256": "7735bfb366ce4ae6ee9a29aeb1fa291bb4aeb4cd42e4bf36d27184ad4c3fb8ad"
+      },
+      "patch": {
+        "path": "./assets/patches/citrus-mature-tree.png",
+        "sha256": "a004cfa2bd23de85f4f7c7d83a86522f732ee92e4262ef836dbb1fb59e966c9b"
+      },
+      "donor": {
+        "path": "assets/donors/citrus-mature-tree.png",
+        "sha256": "f97e000e3a4038cfc85d867576f8d121475f392a4c1032cfd03b848e38787888"
+      },
+      "prompt": {
+        "path": "assets/prompts/citrus-mature-tree.txt",
+        "sha256": "0bd86b91e293290becbb33663305536368e84013414557454013aa1f4caee91f"
+      }
+    },
+    {
+      "id": "citrus-ancient",
+      "status": "candidate",
+      "master": {
+        "path": "./assets/source/citrus-ancient-master.png",
+        "sha256": "9b1d0ab31c860d25ff325250ba1859f41239aac7bae16d409341d8839ef0b9b4",
+        "source": "trees/assets/trees/citrus-ancient-v1.png"
+      },
+      "reference": {
+        "path": "assets/references/citrus-ancient.png",
+        "sha256": "8702032c3b5ee7ab9cbc4d97a581d16c565bada798df7ed0d2a972438b181c72"
+      },
+      "patch": {
+        "path": "./assets/patches/citrus-ancient.png",
+        "sha256": "eb70ecfa0077bdf316459df236d13046faef07dfb5ee48fe44b73d59568b3a03"
+      },
+      "donor": {
+        "path": "assets/donors/citrus-ancient.png",
+        "sha256": "b64dba10851a5fc58c1457f6e032ef1f754fb9cc1fd886119fa681fa9fb51832"
+      },
+      "prompt": {
+        "path": "assets/prompts/citrus-ancient.txt",
+        "sha256": "4ffc2ffb7c06ae9104a1d79882eacd5b519b18bad532bcc6d6566469919298d0"
+      }
+    }
+  ]
+}

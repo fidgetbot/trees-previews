@@ -1,0 +1,16 @@
+{
+  "id": "peach-mature-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "peach-mature-tree.png",
+      "mimeType": "image/png",
+      "size": 1721842,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied image in place as a precise LOCAL game asset retouch, not a new illustration. Output exactly 1024x1024. Preserve original pixels outside central junction approximately x185..845,y250..620; absolutely preserve upper trunk above y250, roots and twigs below y660, and all root geometry at both image borders. Background remains exact flat dark brown #281d15. Repair the conspicuous horizontal trunk cut at y447 and mismatched pasted strips only in the junction. Form a continuous anatomically plausible asymmetric substantial MATURE PEACH TREE root flare, matching the existing reddish peach bark, pale mottled grain, knots, highlights, shadows, lighting, painted botanical style and scale of the supplied trunk. Smoothly continue its wood grain down into exactly the existing five root paths: shallow left, lower left, descending just right of center, lower right, shallow right. Keep exact original widths, centerlines, directions and positions at the boundaries of retouch; no invented or repositioned roots, no new branches or twigs. Gradually divide trunk into separately tapering rounded structural roots, with natural dark background negative spaces between roots. Remove horizontal seams, squared ends, abrupt width steps and polygonal pasted collar. Make the transition organic and irregular, never a flat cap or bundle of tubes. Blend new bark texture into existing root texture before the edit boundary, without altering external roots. No soil, ground line, haze, vignette, labels or added elements. All image content outside this local junction remains unchanged."
+    }
+  ],
+  "attempts": []
+}

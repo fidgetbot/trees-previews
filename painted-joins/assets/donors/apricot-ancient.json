@@ -1,0 +1,16 @@
+{
+  "id": "apricot-ancient",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "apricot-ancient.png",
+      "mimeType": "image/png",
+      "size": 1860627,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform a precise LOCAL retouch of the supplied actual Ancient apricot tree game asset, not a new illustration. Output exactly 1024x1024. Preserve source pixels everywhere outside the central trunk/root junction approximately x185..845 y250..620; especially preserve ALL upper tree above y250, ALL roots and twigs below y660, and exact root geometry at both image borders. Keep the flat background exactly #281d15. No soil, ground, haze, vignette, text, extra elements. Within the junction, remove the conspicuous horizontal trunk cut at y447 and mismatched pasted root strip seams, squared ends, abrupt width steps, and geometric collar. Repaint only this junction into continuous organic ancient apricot wood: a gnarled weathered asymmetrical flaring base with source copper brown bark, pale irregular bark highlights, deep fissures, knots and source lighting. Gradually transition existing trunk into exactly the FIVE existing root routes: shallow leftward, lower-left diagonal, descending slightly right of center, lower-right diagonal, shallow rightward. Match precisely the existing width, centerline, direction and texture at each route's exit from the edit zone, blending bark into the unmodified root strips without discontinuities. Do not reposition, add, remove, or widen outgoing roots beyond the junction. Separately tapering rounded roots with natural dark background negative spaces between them, anatomically believable irregular division, never tubular bundles, polygon cap, flat horizontal shelf, or symmetric collar. Match this particular supplied image's painted botanical style, ancient age and scale. Preserve all peripheral artwork unchanged; localized seam repair only."
+    }
+  ],
+  "attempts": []
+}

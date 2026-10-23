@@ -1,0 +1,16 @@
+{
+  "id": "cherry-young-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "cherry-young-tree.png",
+      "mimeType": "image/png",
+      "size": 1575493,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform a precise local retouch of the supplied 1024x1024 cherry tree Young-stage game asset. Output exactly 1024x1024. This is an edit of the actual source, NOT a newly drawn tree. Preserve every pixel outside the central trunk/root junction editing region approximately x185..845 y250..620. In particular upper trunk above y250, all roots and tiny twigs below y660, and the roots at both image borders must remain identical. Preserve exact uniform background #281d15 everywhere, with no added elements. Repair the conspicuous straight horizontal trunk cutoff at y447 and mismatched pasted root strips into a continuous organic asymmetric modest Young cherry root flare. Keep source copper reddish-brown cherry bark with silver horizontal lenticels, matching the original painted botanical texture, scale, highlights, shadows, lighting and knots. Blend from the untouched upper trunk gradually into the EXISTING five roots: shallow left, lower-left, descending slightly right of center, lower-right, shallow right. Match their exact existing centerlines, widths, directions, and attachment positions where they leave the edited area; do not move roots or add any roots or branches. Within the repair area remove the straight horizontal seam, squared ends, abrupt width steps, pasted rectangular strips and flat geometric collar. Form naturally rounded separately tapering root buttresses continuous with trunk grain and with dark background negative spaces between roots. Restrained young-stage flare, not old or gnarled, not a symmetrical star or cluster of tubes. Keep the entire surrounding source unchanged, including all fine root twigs. No soil, ground line, vignette, haze, labels, or extra elements."
+    }
+  ],
+  "attempts": []
+}

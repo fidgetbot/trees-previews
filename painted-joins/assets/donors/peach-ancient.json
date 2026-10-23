@@ -1,0 +1,16 @@
+{
+  "id": "peach-ancient",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "peach-ancient.png",
+      "mimeType": "image/png",
+      "size": 1890559,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied image as a precise LOCAL retouch of the existing ancient peach tree game asset, NOT a new illustration. Output exactly 1024x1024. Preserve the original pixels/content outside the central trunk-to-root junction; especially preserve everything above y=250, everything below y=660, and all roots at both lateral borders. Background must remain uniform exact #281d15. Confine repainting to approximately x=185..845,y=250..620, softly joining source wood within this area. Remove the obvious horizontal trunk cutoff at y=447 and pasted strip collars within the editable junction. Reconstruct this junction as anatomically continuous asymmetric aged peach wood with gnarled weathered bark matching precisely the source upper trunk's reddish tan, muted olive, cream highlights, dark crevices, knots, grain, painted botanical style, lighting and scale. Trunk should gradually flare and divide into the EXISTING five structural roots: shallow leftward, lower-left diagonal, descending slightly right of center, lower-right diagonal, and shallow rightward. Each root must meet its existing outgoing path at its EXACT original centerline, width, and direction at the edit perimeter. Preserve all outgoing root placements and existing twigs, do not add roots or branches. Rounded tapering irregular wood and dark background negative spaces between distinct roots; no horizontal seam, squared endpoint, sudden width step, polygon cap, geometric collar, or tube bundle. Do not broadly redraw or improve any distal roots: retain their original geometry and texture beyond the local edit even where the source is imperfect. No soil, ground line, haze, vignette, labels or extra elements."
+    }
+  ],
+  "attempts": []
+}

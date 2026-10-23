@@ -1,0 +1,16 @@
+{
+  "id": "citrus-ancient",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "citrus-ancient.png",
+      "mimeType": "image/png",
+      "size": 1944183,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform a precise LOCAL retouch on the supplied 1024x1024 citrus tree game asset. Output exactly 1024x1024. Use the supplied image as the edit source, not as inspiration for a new illustration. Preserve all original pixels outside the central junction approximately x185..845, y250..620; especially preserve upper trunk and branches above y250, everything below y660, and all root geometry at the left and right borders. Maintain the exact flat #281d15 background, including negative spaces. No soil, ground line, haze, vignette, text, or added elements. Within the junction repair the conspicuous horizontal truncation at y447 and mismatched pasted root strips into anatomically continuous organic ancient citrus wood. Match the source bark: weathered gnarled tan/golden brown bark, irregular grain, olive mossy coloration, existing knots and cavities, painted botanical rendering, original highlights and shadows and scale. Preserve upper trunk silhouette. Form a gradual asymmetric aged root flare that separates naturally into exactly the five EXISTING structural roots: shallow leftward root, diagonal lower-left root, descending slightly right-of-center root, diagonal lower-right root, shallow rightward root. Keep exact centerlines, widths, and directions of those roots at the edit-region boundary; seamlessly transition into their existing surfaces without changing their external downstream portions. Eliminate hard horizontal seam, straight polygon cap, squared ends, abrupt width changes, geometric collar and pasted strips in the editable junction. Rounded separately tapering roots with natural dark background negative spaces, not a cluster of tubes. No new roots or branches. This is a constrained repair of the actual existing Ancient citrus asset only; do not redraw the remainder of the tree."
+    }
+  ],
+  "attempts": []
+}

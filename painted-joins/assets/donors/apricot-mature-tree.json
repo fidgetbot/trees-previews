@@ -1,0 +1,16 @@
+{
+  "id": "apricot-mature-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "apricot-mature-tree.png",
+      "mimeType": "image/png",
+      "size": 1775481,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied image as a precise LOCAL retouch of the existing mature apricot tree game asset, not a replacement illustration. Output exactly 1024x1024. Preserve original pixels/content outside junction region approximately x185..845 y250..620; preserve absolutely upper trunk above y250, roots and twigs below y660, and roots at both image borders. Background stays exact solid #281d15. Within junction only, remove conspicuous horizontal trunk cut at y447 and pasted strip seams, including central descending root seam. Paint continuous organic mature apricot wood linking original trunk into its EXACT five existing structural root paths: shallow leftward, diagonal lower-left, descending just right of center, diagonal lower-right, shallow rightward. Match outgoing centerlines, widths, direction and existing silhouettes where exiting local edit; do not move or add roots or twigs. Create a substantial but asymmetric mature root flare, gradual separate tapered rounded roots with naturally shaped dark background negative spaces between roots. No horizontal collar, polygon cap, squared ends, abrupt width changes, tube bundle, or pasted straight strips at junction. Match source copper-brown apricot bark, knots, grain, bright cream highlights, dark crevices, painted botanical rendering, exact source lighting, age and scale. Smoothly transition original upper bark into grain following the five root directions, and blend into unchanged distal root surfaces. No ground, soil, haze, vignette, labels, extra objects or branches. This is strictly localized seam repair of the supplied composition."
+    }
+  ],
+  "attempts": []
+}

@@ -1,0 +1,16 @@
+{
+  "id": "citrus-mature-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "citrus-mature-tree.png",
+      "mimeType": "image/png",
+      "size": 1704892,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied tree image as a precise LOCAL retouch, not a newly designed tree. Output exactly 1024x1024. Preserve all source pixels outside the central trunk/root junction approximately x185..845 y250..620; especially upper trunk and branches above y250, roots/twigs below y660, and all border root geometry. Background remains perfectly flat #281d15. Repair the obvious horizontal trunk cutoff at y447 and mismatched pasted strips inside the repair zone only. Make this actual mature citrus trunk flow organically into its exact five existing roots: shallow left, diagonal lower-left, downward slightly right of center, diagonal lower-right, shallow right. Preserve exact outgoing widths, centerlines, trajectories and count; no additional roots or branches. Build a substantial asymmetric mature citrus root flare with rounded individually tapering root shoulders and natural dark background negative spaces. Remove hard straight seams, geometric collar, square ends, abrupt width changes. Match the actual source golden olive brown bark, irregular mottled grain and knots, cream gold highlights, painted botanical texture, scale and lighting, blending bark gradually into existing root texture at repair boundaries. Not cherry bark, not ancient gnarling, not a cluster of tubes or a polygon cap. Do not alter any existing peripheral twigs or root tips. No soil, ground line, haze, vignette, text or other additions. Keep the existing composition exactly."
+    }
+  ],
+  "attempts": []
+}

@@ -1,0 +1,16 @@
+{
+  "id": "plum-ancient",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "plum-ancient.png",
+      "mimeType": "image/png",
+      "size": 1757879,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied 1024x1024 tree image as a precise local retouch, not a new illustration. Output exactly 1024x1024. Preserve all original pixels outside the central trunk/root junction approximately x=185..845, y=250..620; especially preserve the upper trunk and branches above y=250, every root and twig below y=660, and the original root geometry at both image borders. Preserve flat solid background #281d15. Within the edit area ONLY, repair the hard horizontal cut at approximately y=437-447 and mismatched pasted root strips into a continuous organic ancient plum tree root flare. Match the existing aged plum bark's brown, muted reddish brown and tan coloration, deeply irregular grain, knots, weathered texture, highlights, shadows, and painted botanical style. Make a gnarled asymmetric gradual transition from trunk into exactly the five EXISTING structural root paths: shallow leftward, diagonal lower-left, descending slightly right of center, diagonal lower-right, shallow rightward. Their outgoing widths, directions and centerlines at the edit boundary must remain exactly as supplied; retain all existing distant root and twig details untouched, even their stylization. Repaint the connections so bark flows naturally into separately tapering rounded roots with dark background negative spaces between them. Eliminate the horizontal trunk base cut, abrupt pasted collar, squared strips and width steps within this local region. The flare must be old irregular organic wood, not a polygon cap, symmetrical star, or cluster of tubes. Do not add roots or branches, ground, soil, labels, vignette, haze, or any extra objects. This is a conservative junction repair of the actual source asset, preserving its scale and lighting."
+    }
+  ],
+  "attempts": []
+}

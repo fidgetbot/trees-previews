@@ -1,0 +1,16 @@
+{
+  "id": "plum-young-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "plum-young-tree.png",
+      "mimeType": "image/png",
+      "size": 1589562,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied image as a precise LOCAL retouch, NOT a newly drawn tree. Output exactly 1024x1024. Preserve original image unchanged outside the trunk/root junction approximately x185..845 y250..620. Absolutely preserve upper trunk above y250, every root and twig below y660, and roots at both image borders. Preserve flat solid background #281d15. No ground, soil, text, haze, vignette or additions. Repair the hard straight horizontal trunk bottom around y432-447 and pasted rectangular root-strip seams within the edit region. Create one continuous anatomically plausible asymmetric modest root flare for THIS Young plum tree, matching original reddish brown painted botanical bark, knots, grain, light direction and scale. Blend the trunk's original bark texture into the root bases, eliminating squared ends, horizontal seams and sudden width changes. Connect to exactly the five original structural root paths with unchanged centerlines, widths, and exit directions: shallow leftward, diagonally lower-left, descending slightly right of center, diagonally lower-right, and shallow rightward. Keep all existing outgoing root geometry fixed. The trunk must gradually branch into individually tapering rounded organic roots separated by natural dark background negative spaces, without any geometric collar, polygon cap or tube cluster. Do not add roots or branches. Keep flare modest, young, slender, not ancient or gnarled. Preserve all existing image elements outside the local repair region pixel-exactly wherever possible."
+    }
+  ],
+  "attempts": []
+}

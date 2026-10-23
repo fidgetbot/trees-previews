@@ -1,0 +1,16 @@
+{
+  "id": "citrus-sapling",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "citrus-sapling.png",
+      "mimeType": "image/png",
+      "size": 1610560,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Precisely locally retouch the supplied 1024x1024 citrus sapling trunk/root game asset image. Output exactly 1024x1024. Use the provided image as the source, not as inspiration for a new illustration. Preserve all pixels outside the local central junction approximately x185..845 y250..620; especially preserve the upper trunk above y250, all roots and twigs below y660, and the root geometry at both image borders. Preserve the uniform background exactly #281d15. Repair the pasted junction only: eliminate the conspicuous horizontal trunk cut at around y447, squared strip ends, discontinuous widths, and root-strip seams. Make one continuous slender, young, asymmetric citrus sapling root flare, retaining the source olive-golden brown bark, soft painted grain, little knots, highlights, shadows, original lighting and scale. Blend bark grain continuously from trunk into the existing five structural root paths: shallow leftward, diagonal lower-left, descending slightly right of center, diagonal lower-right, shallow rightward. Match each existing outgoing root's EXACT width, centerline, and direction where it exits the repair area. No repositioning, no extra roots, no extra branches. Gradual organic division into individually tapering rounded roots with dark background negative spaces between them, not a geometric collar, flat polygon cap, bulky mature flare, or bunch of tubes. Preserve the original fine side twigs, the source painted botanical appearance, and all unaffected content. No soil, ground line, haze, vignette, text, or added elements."
+    }
+  ],
+  "attempts": []
+}

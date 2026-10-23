@@ -1,0 +1,16 @@
+{
+  "id": "pear-mature-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "pear-mature-tree.png",
+      "mimeType": "image/png",
+      "size": 1710618,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the provided image as a precise LOCAL game-asset retouch, not a new illustration. Output exactly 1024x1024. Preserve all original pixels outside the central trunk/root junction approximately x=185..845, y=250..620; absolutely preserve upper trunk above y=250, roots and twigs below y=660, and outgoing root geometry at both image borders. Keep flat background exactly #281d15, no additional elements. Repair the conspicuous horizontal cut at trunk base (around y=430-447) and mismatched pasted root strips solely in the junction. Form one organic anatomically continuous asymmetric MATURE PEAR root flare, substantial but not ancient, with the exact existing golden tan/dark brown painted bark, grain, knots, lighting, highlights and shadows of this source trunk. Continue bark contours naturally from the existing trunk into the five existing structural root paths: leftward shallow root, lower-left diagonal root, descending root slightly right of center, lower-right diagonal root, and rightward shallow root. At the edit boundary match their existing widths, positions, centerlines and directions exactly. Do not reposition, add or remove any roots or branches or twigs. Blend away all horizontal seams, squared-off ends, abrupt width steps and geometric pasted collars within the repair region. The substantial trunk must gradually divide into individually tapering rounded organic roots with asymmetrical dark background negative spaces between roots, not a flat polygon cap nor a cluster of tubes. Preserve the original botanical painted style, source blur and texture, original scale and lighting. Leave the rest of the supplied composition unchanged."
+    }
+  ],
+  "attempts": []
+}

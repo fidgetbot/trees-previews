@@ -1,0 +1,16 @@
+{
+  "id": "apricot-young-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "apricot-young-tree.png",
+      "mimeType": "image/png",
+      "size": 1598776,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied tree image as a precise local retouch, not a replacement illustration. Output exactly 1024x1024. Preserve all pixels outside the central trunk/root junction, approximately x185..845 y250..620; especially preserve trunk above y250, all roots and twigs below y660, and roots at both image borders. Preserve flat solid background #281d15 with no additions. Repair the hard horizontal trunk cutoff at y447 and mismatched pasted root strips into one continuous organic young apricot trunk-to-root transition. Retain this source's copper/apricot-brown painted bark, grain, knots, lighting, highlights and shadows. Young age means a modest slender asymmetric flare, not bulky mature or gnarled wood. Gradually divide the existing trunk into EXACTLY the five existing structural root paths: shallow left, diagonal lower left, descending slightly right of center, diagonal lower right, shallow right. Match exact existing widths, centerlines, direction, position and texture at edit boundaries. Do not move, add, remove or redesign roots or twigs. Remove squared ends, abrupt width changes, horizontal seams, pasted collar and strip edges in junction. Create naturally rounded separately tapering root shoulders flowing from trunk bark with natural dark background negative spaces between roots, no polygon cap and no cluster of uniform tubes. Keep the same botanical game-asset painted style and scale. All surrounding content must remain unchanged. No soil, ground, haze, vignette, labels or extra elements."
+    }
+  ],
+  "attempts": []
+}

@@ -1,0 +1,16 @@
+{
+  "id": "citrus-young-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "citrus-young-tree.png",
+      "mimeType": "image/png",
+      "size": 1622120,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform a precise LOCAL retouch of the supplied 1024x1024 citrus tree Young-stage game asset. Output same 1024x1024 canvas and original image composition. Preserve all pixels outside the central junction editing area approximately x185..845,y250..620; especially unchanged trunk above y250, all roots and twigs below y660, and root geometry at both borders. Preserve exact uniform background #281d15. This is an edit of the actual supplied image, NOT a new tree. Repair the conspicuous straight horizontal trunk cutoff at y447 and mismatched pasted strips into a single organically continuous modest young citrus root flare. Match the source yellow-golden olive brown bark, painted botanical grain, knots, illumination and shadows, and softness. Keep this young flare modest and asymmetric, not ancient, cherry-like, bulky, or gnarled. Smoothly continue trunk grain down into precisely the five EXISTING structural root trajectories: shallow leftward, lower-left diagonal, downward slightly right of center, lower-right diagonal, shallow rightward. Keep exact existing root widths, centerlines and directions at editing boundary; no additions or relocation. Remove horizontal seams, rectangular pasted collars, squared ends and width jumps within edited area. Shape organically rounded separate tapering roots with natural dark background negative spaces between them, continuous subtly branching wood rather than a flat polygon cap or a bundle of tubes. Preserve existing fine roots/twigs and the entire original silhouette outside repair zone. No soil, ground line, haze, vignette, text, or additional objects."
+    }
+  ],
+  "attempts": []
+}

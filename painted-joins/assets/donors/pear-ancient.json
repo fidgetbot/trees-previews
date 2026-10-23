@@ -1,0 +1,16 @@
+{
+  "id": "pear-ancient",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "pear-ancient.png",
+      "mimeType": "image/png",
+      "size": 1916894,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform precise LOCAL retouch on supplied image, not a new illustration. Output exactly 1024x1024. Preserve source pixels outside central trunk/root junction; editing confined approximately x185..845 y250..620 with gentle internal boundary blending. Upper trunk above y250 unchanged, all roots/twigs below y660 unchanged, all root geometry at image borders unchanged. Background remains exact flat #281d15, no extra elements. Repair conspicuous horizontal trunk cutoff around y432-447 and pasted strip junctions by painting a continuous asymmetric ANCIENT PEAR tree root flare. Match existing upper trunk's weathered gray-brown and tan bark, deep irregular fissures, grain, knots, olive traces, highlights and shadow, painted botanical game asset style and lighting. Preserve the visible upper knots. Transition organically from thick gnarled trunk into precisely the FIVE EXISTING root paths: left shallow, lower left, descending slightly right of center, lower right, right shallow. Match exact original outgoing widths, centerlines, angles and positions where each exits edit area. Do not add, delete or move any outgoing roots or twigs. Within edit region remove all straight horizontal joins, squared wood ends, pasted collars and abrupt thickness steps; instead give each root an individual naturally rounded taper with bark grain flowing continuously from trunk along its root direction. Asymmetric ancient weathered buttressing, natural dark background negative spaces between root divisions. No polygon cap, no uniform tubular bundle, no generic cherry bark. Keep original scale, framing, upper trunk and branching and distant root appearance intact. No ground, soil, haze, vignette, text, or new branches."
+    }
+  ],
+  "attempts": []
+}

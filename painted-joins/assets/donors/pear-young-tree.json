@@ -1,0 +1,16 @@
+{
+  "id": "pear-young-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "pear-young-tree.png",
+      "mimeType": "image/png",
+      "size": 1687976,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied image as a precise LOCAL game-asset retouch, not a new illustration. Output exactly 1024x1024. Preserve source pixels outside the central trunk/root junction repair approximately x185..845,y250..620; absolutely preserve upper trunk above y250, all roots and twigs below y660, and root geometry at both borders. Preserve uniform flat background #281d15 with no added elements. Repair the obvious horizontal trunk cut at about y428-447 and pasted root-strip joins into continuous organic pear-tree wood. The species is pear, stage Young: a modest asymmetric root flare, not an ancient gnarled base or cherry bark. Match the existing tan golden brown painted bark, grain, knots, slightly soft texture, source lighting and scale exactly. Integrate the trunk into ONLY the existing five roots: shallow leftward, diagonal lower-left, descending slightly right of center, diagonal lower-right, and shallow rightward. Their centerlines, widths, directions and positions at the repair boundary must match the original exactly. Smooth out horizontal seams, abrupt squared cutoffs, width steps, geometric pasted collar and center-root patch seam. The trunk should gradually divide into rounded individually tapering roots with natural dark background negative spaces between them, anatomically continuous flowing grain and shadows. Avoid a broad flat polygon cap or cluster of tubes. Do not change any existing peripheral twig, root tip or silhouette outside the repair; do not add roots or branches, soil, ground line, haze, vignette or labels. Use the supplied image as the exact edit base."
+    }
+  ],
+  "attempts": []
+}

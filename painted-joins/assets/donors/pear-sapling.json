@@ -1,0 +1,16 @@
+{
+  "id": "pear-sapling",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "pear-sapling.png",
+      "mimeType": "image/png",
+      "size": 1525958,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform a precise LOCAL retouch of the supplied pear sapling trunk/root composite, using the supplied image as the edit source, NOT a newly illustrated tree. Output exactly 1024x1024. Preserve every source pixel outside the central junction edit area approximately x185..845,y250..620; especially upper trunk above y250, all roots/twigs below y660, and the roots at both image borders. Preserve exact flat background #281d15. Only repair the ugly hard horizontal trunk cut near y437-447 and pasted collar/root strips at the junction. Integrate into one continuous anatomically plausible slender young pear sapling root flare, asymmetrical, with the source's golden tan/brown bark, painted grain and knots, existing highlight direction, softness and scale. Keep the existing trunk silhouette above the repair. The trunk must divide gradually into EXACTLY the five EXISTING structural root paths: leftward shallow, lower-left diagonal, descending slightly right of center, lower-right diagonal, rightward shallow. Preserve exact outgoing widths, centerlines, trajectories and attachments to the unedited source. Do not add, shift, replace or reshape the outgoing roots or twigs. Blend bark texture across seams locally, removing horizontal cuts, rectangular ends, abrupt width jumps and polygonal collar. Form rounded independently tapering root shoulders with natural dark background negative spaces between the roots, not a flat cap and not a bundle of tubes. Keep flare slender and youthful, not mature or gnarled. No soil, ground line, haze, vignette, lettering or extra elements. This is a conservative patch repair of this actual game asset; retain all unedited image content exactly."
+    }
+  ],
+  "attempts": []
+}

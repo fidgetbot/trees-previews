@@ -1,0 +1,718 @@
+[
+  {
+    "name": "chromium",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "items": [
+      {
+        "id": "cherry-sapling",
+        "patch": true,
+        "changed": 211604,
+        "outside": 0,
+        "growth": 70094
+      },
+      {
+        "id": "cherry-young-tree",
+        "patch": true,
+        "changed": 181381,
+        "outside": 0,
+        "growth": 70168
+      },
+      {
+        "id": "cherry-mature-tree",
+        "patch": true,
+        "changed": 217448,
+        "outside": 0,
+        "growth": 70252
+      },
+      {
+        "id": "cherry-ancient",
+        "patch": true,
+        "changed": 211492,
+        "outside": 0,
+        "growth": 70339
+      },
+      {
+        "id": "plum-sapling",
+        "patch": true,
+        "changed": 189343,
+        "outside": 0,
+        "growth": 70129
+      },
+      {
+        "id": "plum-young-tree",
+        "patch": true,
+        "changed": 209610,
+        "outside": 0,
+        "growth": 70096
+      },
+      {
+        "id": "plum-mature-tree",
+        "patch": true,
+        "changed": 209307,
+        "outside": 0,
+        "growth": 70219
+      },
+      {
+        "id": "plum-ancient",
+        "patch": true,
+        "changed": 205023,
+        "outside": 0,
+        "growth": 70200
+      },
+      {
+        "id": "apricot-sapling",
+        "patch": true,
+        "changed": 215338,
+        "outside": 0,
+        "growth": 69921
+      },
+      {
+        "id": "apricot-young-tree",
+        "patch": true,
+        "changed": 217742,
+        "outside": 0,
+        "growth": 70194
+      },
+      {
+        "id": "apricot-mature-tree",
+        "patch": true,
+        "changed": 222454,
+        "outside": 0,
+        "growth": 70262
+      },
+      {
+        "id": "apricot-ancient",
+        "patch": true,
+        "changed": 208828,
+        "outside": 0,
+        "growth": 70391
+      },
+      {
+        "id": "peach-sapling",
+        "patch": true,
+        "changed": 215552,
+        "outside": 0,
+        "growth": 69958
+      },
+      {
+        "id": "peach-young-tree",
+        "patch": true,
+        "changed": 199621,
+        "outside": 0,
+        "growth": 70157
+      },
+      {
+        "id": "peach-mature-tree",
+        "patch": true,
+        "changed": 209895,
+        "outside": 0,
+        "growth": 70270
+      },
+      {
+        "id": "peach-ancient",
+        "patch": true,
+        "changed": 217086,
+        "outside": 0,
+        "growth": 70311
+      },
+      {
+        "id": "pear-sapling",
+        "patch": true,
+        "changed": 215669,
+        "outside": 0,
+        "growth": 69991
+      },
+      {
+        "id": "pear-young-tree",
+        "patch": true,
+        "changed": 218425,
+        "outside": 0,
+        "growth": 70299
+      },
+      {
+        "id": "pear-mature-tree",
+        "patch": true,
+        "changed": 184851,
+        "outside": 0,
+        "growth": 70315
+      },
+      {
+        "id": "pear-ancient",
+        "patch": true,
+        "changed": 207301,
+        "outside": 0,
+        "growth": 70429
+      },
+      {
+        "id": "citrus-sapling",
+        "patch": true,
+        "changed": 219550,
+        "outside": 0,
+        "growth": 70098
+      },
+      {
+        "id": "citrus-young-tree",
+        "patch": true,
+        "changed": 213894,
+        "outside": 0,
+        "growth": 70305
+      },
+      {
+        "id": "citrus-mature-tree",
+        "patch": true,
+        "changed": 221210,
+        "outside": 0,
+        "growth": 70348
+      },
+      {
+        "id": "citrus-ancient",
+        "patch": true,
+        "changed": 224465,
+        "outside": 0,
+        "growth": 70327
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "name": "chromium",
+    "viewport": {
+      "width": 1400,
+      "height": 1000
+    },
+    "errors": [],
+    "items": [
+      {
+        "id": "cherry-sapling",
+        "patch": true,
+        "changed": 211604,
+        "outside": 0,
+        "growth": 70094
+      },
+      {
+        "id": "cherry-young-tree",
+        "patch": true,
+        "changed": 181381,
+        "outside": 0,
+        "growth": 70168
+      },
+      {
+        "id": "cherry-mature-tree",
+        "patch": true,
+        "changed": 217448,
+        "outside": 0,
+        "growth": 70252
+      },
+      {
+        "id": "cherry-ancient",
+        "patch": true,
+        "changed": 211492,
+        "outside": 0,
+        "growth": 70339
+      },
+      {
+        "id": "plum-sapling",
+        "patch": true,
+        "changed": 189343,
+        "outside": 0,
+        "growth": 70129
+      },
+      {
+        "id": "plum-young-tree",
+        "patch": true,
+        "changed": 209610,
+        "outside": 0,
+        "growth": 70096
+      },
+      {
+        "id": "plum-mature-tree",
+        "patch": true,
+        "changed": 209307,
+        "outside": 0,
+        "growth": 70219
+      },
+      {
+        "id": "plum-ancient",
+        "patch": true,
+        "changed": 205023,
+        "outside": 0,
+        "growth": 70200
+      },
+      {
+        "id": "apricot-sapling",
+        "patch": true,
+        "changed": 215338,
+        "outside": 0,
+        "growth": 69921
+      },
+      {
+        "id": "apricot-young-tree",
+        "patch": true,
+        "changed": 217742,
+        "outside": 0,
+        "growth": 70194
+      },
+      {
+        "id": "apricot-mature-tree",
+        "patch": true,
+        "changed": 222454,
+        "outside": 0,
+        "growth": 70262
+      },
+      {
+        "id": "apricot-ancient",
+        "patch": true,
+        "changed": 208828,
+        "outside": 0,
+        "growth": 70391
+      },
+      {
+        "id": "peach-sapling",
+        "patch": true,
+        "changed": 215552,
+        "outside": 0,
+        "growth": 69958
+      },
+      {
+        "id": "peach-young-tree",
+        "patch": true,
+        "changed": 199621,
+        "outside": 0,
+        "growth": 70157
+      },
+      {
+        "id": "peach-mature-tree",
+        "patch": true,
+        "changed": 209895,
+        "outside": 0,
+        "growth": 70270
+      },
+      {
+        "id": "peach-ancient",
+        "patch": true,
+        "changed": 217086,
+        "outside": 0,
+        "growth": 70311
+      },
+      {
+        "id": "pear-sapling",
+        "patch": true,
+        "changed": 215669,
+        "outside": 0,
+        "growth": 69991
+      },
+      {
+        "id": "pear-young-tree",
+        "patch": true,
+        "changed": 218425,
+        "outside": 0,
+        "growth": 70299
+      },
+      {
+        "id": "pear-mature-tree",
+        "patch": true,
+        "changed": 184851,
+        "outside": 0,
+        "growth": 70315
+      },
+      {
+        "id": "pear-ancient",
+        "patch": true,
+        "changed": 207301,
+        "outside": 0,
+        "growth": 70429
+      },
+      {
+        "id": "citrus-sapling",
+        "patch": true,
+        "changed": 219550,
+        "outside": 0,
+        "growth": 70098
+      },
+      {
+        "id": "citrus-young-tree",
+        "patch": true,
+        "changed": 213894,
+        "outside": 0,
+        "growth": 70305
+      },
+      {
+        "id": "citrus-mature-tree",
+        "patch": true,
+        "changed": 221210,
+        "outside": 0,
+        "growth": 70348
+      },
+      {
+        "id": "citrus-ancient",
+        "patch": true,
+        "changed": 224465,
+        "outside": 0,
+        "growth": 70327
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "name": "webkit",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "items": [
+      {
+        "id": "cherry-sapling",
+        "patch": true,
+        "changed": 212297,
+        "outside": 0,
+        "growth": 71090
+      },
+      {
+        "id": "cherry-young-tree",
+        "patch": true,
+        "changed": 182447,
+        "outside": 0,
+        "growth": 70954
+      },
+      {
+        "id": "cherry-mature-tree",
+        "patch": true,
+        "changed": 218014,
+        "outside": 0,
+        "growth": 70949
+      },
+      {
+        "id": "cherry-ancient",
+        "patch": true,
+        "changed": 212076,
+        "outside": 0,
+        "growth": 71093
+      },
+      {
+        "id": "plum-sapling",
+        "patch": true,
+        "changed": 190249,
+        "outside": 0,
+        "growth": 70960
+      },
+      {
+        "id": "plum-young-tree",
+        "patch": true,
+        "changed": 210190,
+        "outside": 0,
+        "growth": 70928
+      },
+      {
+        "id": "plum-mature-tree",
+        "patch": true,
+        "changed": 210030,
+        "outside": 0,
+        "growth": 71105
+      },
+      {
+        "id": "plum-ancient",
+        "patch": true,
+        "changed": 205537,
+        "outside": 0,
+        "growth": 70863
+      },
+      {
+        "id": "apricot-sapling",
+        "patch": true,
+        "changed": 215844,
+        "outside": 0,
+        "growth": 70977
+      },
+      {
+        "id": "apricot-young-tree",
+        "patch": true,
+        "changed": 218270,
+        "outside": 0,
+        "growth": 71099
+      },
+      {
+        "id": "apricot-mature-tree",
+        "patch": true,
+        "changed": 222815,
+        "outside": 0,
+        "growth": 71121
+      },
+      {
+        "id": "apricot-ancient",
+        "patch": true,
+        "changed": 209628,
+        "outside": 0,
+        "growth": 71153
+      },
+      {
+        "id": "peach-sapling",
+        "patch": true,
+        "changed": 216036,
+        "outside": 0,
+        "growth": 71106
+      },
+      {
+        "id": "peach-young-tree",
+        "patch": true,
+        "changed": 200298,
+        "outside": 0,
+        "growth": 71026
+      },
+      {
+        "id": "peach-mature-tree",
+        "patch": true,
+        "changed": 210540,
+        "outside": 0,
+        "growth": 71114
+      },
+      {
+        "id": "peach-ancient",
+        "patch": true,
+        "changed": 217280,
+        "outside": 0,
+        "growth": 71083
+      },
+      {
+        "id": "pear-sapling",
+        "patch": true,
+        "changed": 216242,
+        "outside": 0,
+        "growth": 70843
+      },
+      {
+        "id": "pear-young-tree",
+        "patch": true,
+        "changed": 218922,
+        "outside": 0,
+        "growth": 71238
+      },
+      {
+        "id": "pear-mature-tree",
+        "patch": true,
+        "changed": 185587,
+        "outside": 0,
+        "growth": 71178
+      },
+      {
+        "id": "pear-ancient",
+        "patch": true,
+        "changed": 207991,
+        "outside": 0,
+        "growth": 71176
+      },
+      {
+        "id": "citrus-sapling",
+        "patch": true,
+        "changed": 220104,
+        "outside": 0,
+        "growth": 71096
+      },
+      {
+        "id": "citrus-young-tree",
+        "patch": true,
+        "changed": 214541,
+        "outside": 0,
+        "growth": 71126
+      },
+      {
+        "id": "citrus-mature-tree",
+        "patch": true,
+        "changed": 221606,
+        "outside": 0,
+        "growth": 71071
+      },
+      {
+        "id": "citrus-ancient",
+        "patch": true,
+        "changed": 224811,
+        "outside": 0,
+        "growth": 71113
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "name": "webkit",
+    "viewport": {
+      "width": 1400,
+      "height": 1000
+    },
+    "errors": [],
+    "items": [
+      {
+        "id": "cherry-sapling",
+        "patch": true,
+        "changed": 212297,
+        "outside": 0,
+        "growth": 71090
+      },
+      {
+        "id": "cherry-young-tree",
+        "patch": true,
+        "changed": 182447,
+        "outside": 0,
+        "growth": 70954
+      },
+      {
+        "id": "cherry-mature-tree",
+        "patch": true,
+        "changed": 218014,
+        "outside": 0,
+        "growth": 70949
+      },
+      {
+        "id": "cherry-ancient",
+        "patch": true,
+        "changed": 212076,
+        "outside": 0,
+        "growth": 71093
+      },
+      {
+        "id": "plum-sapling",
+        "patch": true,
+        "changed": 190249,
+        "outside": 0,
+        "growth": 70960
+      },
+      {
+        "id": "plum-young-tree",
+        "patch": true,
+        "changed": 210190,
+        "outside": 0,
+        "growth": 70928
+      },
+      {
+        "id": "plum-mature-tree",
+        "patch": true,
+        "changed": 210030,
+        "outside": 0,
+        "growth": 71105
+      },
+      {
+        "id": "plum-ancient",
+        "patch": true,
+        "changed": 205537,
+        "outside": 0,
+        "growth": 70863
+      },
+      {
+        "id": "apricot-sapling",
+        "patch": true,
+        "changed": 215844,
+        "outside": 0,
+        "growth": 70977
+      },
+      {
+        "id": "apricot-young-tree",
+        "patch": true,
+        "changed": 218270,
+        "outside": 0,
+        "growth": 71099
+      },
+      {
+        "id": "apricot-mature-tree",
+        "patch": true,
+        "changed": 222815,
+        "outside": 0,
+        "growth": 71121
+      },
+      {
+        "id": "apricot-ancient",
+        "patch": true,
+        "changed": 209628,
+        "outside": 0,
+        "growth": 71153
+      },
+      {
+        "id": "peach-sapling",
+        "patch": true,
+        "changed": 216036,
+        "outside": 0,
+        "growth": 71106
+      },
+      {
+        "id": "peach-young-tree",
+        "patch": true,
+        "changed": 200298,
+        "outside": 0,
+        "growth": 71026
+      },
+      {
+        "id": "peach-mature-tree",
+        "patch": true,
+        "changed": 210540,
+        "outside": 0,
+        "growth": 71114
+      },
+      {
+        "id": "peach-ancient",
+        "patch": true,
+        "changed": 217280,
+        "outside": 0,
+        "growth": 71083
+      },
+      {
+        "id": "pear-sapling",
+        "patch": true,
+        "changed": 216242,
+        "outside": 0,
+        "growth": 70843
+      },
+      {
+        "id": "pear-young-tree",
+        "patch": true,
+        "changed": 218922,
+        "outside": 0,
+        "growth": 71238
+      },
+      {
+        "id": "pear-mature-tree",
+        "patch": true,
+        "changed": 185587,
+        "outside": 0,
+        "growth": 71178
+      },
+      {
+        "id": "pear-ancient",
+        "patch": true,
+        "changed": 207991,
+        "outside": 0,
+        "growth": 71176
+      },
+      {
+        "id": "citrus-sapling",
+        "patch": true,
+        "changed": 220104,
+        "outside": 0,
+        "growth": 71096
+      },
+      {
+        "id": "citrus-young-tree",
+        "patch": true,
+        "changed": 214541,
+        "outside": 0,
+        "growth": 71126
+      },
+      {
+        "id": "citrus-mature-tree",
+        "patch": true,
+        "changed": 221606,
+        "outside": 0,
+        "growth": 71071
+      },
+      {
+        "id": "citrus-ancient",
+        "patch": true,
+        "changed": 224811,
+        "outside": 0,
+        "growth": 71113
+      }
+    ],
+    "overflow": false
+  }
+]

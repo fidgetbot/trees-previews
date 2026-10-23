@@ -1,0 +1,16 @@
+{
+  "id": "plum-mature-tree",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "plum-mature-tree.png",
+      "mimeType": "image/png",
+      "size": 1688774,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform a precise LOCAL retouch on the supplied plum tree root composite, preserving the original image rather than making a new illustration. Output exactly 1024x1024. Keep all pixels outside the central junction editing area x=185..845,y=250..620 unchanged, with only tiny necessary edge blending within that area. Absolutely preserve upper trunk above y=250, roots/twigs below y=660, and all border root geometry. Preserve flat solid background #281d15 with no additions. Repair the hard straight horizontal trunk cutoff near y=434-447 and pasted root strip joins into a continuous anatomically believable MATURE PLUM root flare. Use the existing reddish brown mottled bark, gray brown ridges, knots, warm highlights, dark crevices, painted botanical style and original lighting and texture softness. Flare is substantial but asymmetric, not ancient or cherry bark. Maintain five exact existing structural root paths and match their widths, centerlines and directions at edit boundary: left shallow diagonal root toward left border; lower-left descending root; descending root slightly right of center; lower-right diagonal root; right shallow root toward right border. No new roots or twigs, no repositioning of paths. Repaint junction wood so bark grain follows trunk into individual smoothly tapering rounded roots with natural dark negative spaces. Remove abrupt width changes, squared cut ends, straight horizontal seams, geometric collar and pasted texture strips within edit area. Do not form a polygon cap, symmetrical star, or bunch of tubes. Blend continuous bark and natural root crotches into original outgoing roots. Preserve all other original content exactly and preserve scale and framing."
+    }
+  ],
+  "attempts": []
+}

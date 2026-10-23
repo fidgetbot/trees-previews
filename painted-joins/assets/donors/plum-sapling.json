@@ -1,0 +1,16 @@
+{
+  "id": "plum-sapling",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "plum-sapling.png",
+      "mimeType": "image/png",
+      "size": 1540359,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform precise LOCAL retouch of the supplied plum sapling tree game asset, not a new illustration. Output exactly 1024x1024. Use supplied image as source and preserve all pixels outside the central repair region approximately x185..845 y250..620. In particular preserve upper trunk above y250, every root/twig below y660, left/right border root geometry, and exact flat background #281d15. Repair hard horizontal trunk cutoff around y434-447 and pasted mismatched root strips only at the trunk/root junction. Repaint as anatomically continuous slender youthful asymmetric plum root flare matching the source reddish brown painted bark, cream highlights, dark grain, knots, existing light and botanical painted texture. Keep precisely the existing five outgoing structural root paths and match their original widths, centerlines and directions at repair boundaries: shallow left, diagonal lower-left, descending slightly right of center, diagonal lower-right, shallow right. Smoothly blend trunk into these existing roots with separately tapering rounded organic surfaces and natural dark background negative spaces between roots. Remove horizontal seams, squared ends, width steps, pasted geometric collar and polygon cap. Do not produce a bundle of tubes, bulky mature flare, or cherry bark. Do not invent, move or add roots or branches. All surrounding geometry and fine root twigs unchanged. No ground, soil, line, haze, vignette, text, labels or additional elements. Local edit only, preserve composition and source scale."
+    }
+  ],
+  "attempts": []
+}

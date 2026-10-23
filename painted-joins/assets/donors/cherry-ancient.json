@@ -1,0 +1,16 @@
+{
+  "id": "cherry-ancient",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "cherry-ancient.png",
+      "mimeType": "image/png",
+      "size": 1866555,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Edit the supplied tree composite image as a precise LOCAL retouch, not a new illustration. Output 1024x1024. Preserve the original pixels outside the central trunk/root junction approximately x185..845 y250..620; absolutely preserve upper trunk and branches above y250, all roots and twigs below y660, and roots at both image borders. Keep exact solid background #281d15. Repair the hard horizontal trunk cut at y447 and the pasted strips immediately surrounding this junction only. Repaint junction into continuous organic ancient cherry wood, matching original reddish brown bark, pale flecked highlights, greenish weathered crevices, knots, grain, lighting and painted botanical rendering. Create a naturally asymmetric ancient gnarled root flare smoothly dividing into exactly the five EXISTING root paths: shallow leftward, diagonal lower left, descending slightly right of center, diagonal lower right, shallow rightward. Match precisely the widths, centerlines, directions and positions of each existing root where it exits the local retouch, smoothly blending to existing thin streaked bark outside. Remove horizontal seams, squared ends, width steps, straight polygon collar, and pasted-strip appearance within edited region. Rounded separately tapering roots with natural dark background negative spaces between, not a cluster of uniform tubes. No invented roots or branches, no repositioning of roots. Do not alter the outer existing root and twig geometry, background, upper trunk, image framing or scale. No soil, ground line, haze, vignette, text or added objects."
+    }
+  ],
+  "attempts": []
+}

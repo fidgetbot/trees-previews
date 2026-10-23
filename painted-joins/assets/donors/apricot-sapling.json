@@ -1,0 +1,16 @@
+{
+  "id": "apricot-sapling",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "apricot-sapling.png",
+      "mimeType": "image/png",
+      "size": 1562819,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Perform a precise LOCAL retouch of the supplied apricot SAPLING root game asset, using the supplied image as the source, not a new illustration. Output exactly 1024x1024. Preserve all pixels outside the central junction approximately x185..845 y250..620, especially trunk above y250, roots and twigs below y660, and roots at both image borders. Keep the source flat background exactly #281d15. Repair the hard horizontal trunk cutoff at y447 and pasted strip seams into a continuous organic slender young apricot root flare. Match source orange-brown bark, smooth painted grain, knots, bright narrow highlights, shadows, existing lighting and rendering softness. Keep flare asymmetric, young and slender, not thick ancient or cherry bark. Connect precisely the FIVE EXISTING structural roots: shallow leftward, diagonal lower left, descending slightly right of center, diagonal lower right, shallow rightward. Preserve their original widths, centerlines, directions, taper and positions at edited-region exits. Blend trunk gradually into these rounded, separately tapering woody roots with irregular natural dark background negative spaces between. Remove straight horizontal seams, squared edges, pasted collar shapes, abrupt width jumps, and the central descending root strip seam. No new or relocated roots or branches, no root tube cluster, polygon cap, soil, ground line, atmospheric effects, text, or extra elements. Preserve existing fine twigs and all untouched source geometry. Retouch only the junction."
+    }
+  ],
+  "attempts": []
+}

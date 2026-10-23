@@ -1,0 +1,16 @@
+{
+  "id": "peach-sapling",
+  "provider": "openai",
+  "model": "gpt-image-2",
+  "outputs": [
+    {
+      "path": "peach-sapling.png",
+      "mimeType": "image/png",
+      "size": 1552568,
+      "width": 1254,
+      "height": 1254,
+      "revisedPrompt": "Locally retouch the supplied peach sapling root composite image, retaining the original exact 1024x1024 canvas and composition. This is precise source-image editing, NOT a new illustration. Preserve all pixels outside central trunk/root junction approximately x185–845 y250–620; especially preserve upper trunk above y250, roots/twigs below y660, and all border root geometry. Preserve flat background #281d15. Repair conspicuous straight horizontal trunk cut at y447 and pasted mismatched strips within junction only. Make existing reddish copper peach bark transition continuously from trunk into its FIVE existing structural root paths: shallow left, down-left, down slightly right of center, down-right, shallow right. Match existing exit widths, centerlines, and directions exactly. Preserve existing soft painted botanical texture, reddish-brown color, pale longitudinal highlights, knots, grain, lighting, scale, and young slender sapling character. Form a restrained asymmetric organic root flare with flowing longitudinal bark, gently dividing rounded tapering roots, and natural dark background negative spaces between the roots. Remove squared ends, straight seams, abrupt width steps, and polygonal pasted collar. Do not make a tube cluster or flat polygon cap. Do not add roots, branches, soil, ground, haze, vignette, text, or other elements. Keep untouched root twigs and surrounding image identical to source. Blend repaired wood naturally into the source without changing the overall anatomy or placing roots elsewhere."
+    }
+  ],
+  "attempts": []
+}
